@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import "@mo-elsherbiny/image-upload-kit/styles.css";
+
+@layer base {
+  :root {
+    --studio-bg: #07090e;
+    --studio-surface: rgba(15, 19, 28, 0.78);
+    --studio-border: rgba(255, 255, 255, 0.08);
+    --studio-text: #f8fafc;
+    --studio-muted: #94a3b8;
+    --font-sans: 'Inter', 'Geist', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+  }
+
+  html.light {
+    --studio-bg: #f8fafc;
+    --studio-surface: rgba(255, 255, 255, 0.85);
+    --studio-border: rgba(15, 23, 42, 0.1);
+    --studio-text: #0f172a;
+    --studio-muted: #475569;
+  }
+
+  body {
+    background-color: var(--studio-bg);
+    color: var(--studio-text);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Subtle architectural grid overlay */
+.studio-grid-bg {
+  background-size: 36px 36px;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+}
+
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+/* Shiki code block overrides */
+.shiki-code-container pre.shiki {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Shimmer sweep animation for Stage Milestone 3 */
+@keyframes studio-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-studio-shimmer {
+  animation: studio-shimmer 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
