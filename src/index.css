@@ -1,89 +1,190 @@
 @import "tailwindcss";
 @import "@mo-elsherbiny/image-upload-kit/styles.css";
 
-@layer base {
-  :root {
-    --studio-bg: #07090e;
-    --studio-surface: rgba(15, 19, 28, 0.78);
-    --studio-border: rgba(255, 255, 255, 0.08);
-    --studio-text: #f8fafc;
-    --studio-muted: #94a3b8;
-    --font-sans: 'Inter', 'Geist', system-ui, -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
-  }
+/* Theme tokens — mirrored from the buildwithsherbo portfolio design system */
+@custom-variant dark (&:where(.dark, .dark *));
 
-  html.light {
-    --studio-bg: #f8fafc;
-    --studio-surface: rgba(255, 255, 255, 0.85);
-    --studio-border: rgba(15, 23, 42, 0.1);
-    --studio-text: #0f172a;
-    --studio-muted: #475569;
-  }
-
-  body {
-    background-color: var(--studio-bg);
-    color: var(--studio-text);
-    font-family: var(--font-sans);
-    overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  code,
-  pre,
-  .font-mono {
-    font-family: var(--font-mono);
-  }
+@theme {
+  --font-sans: "Cairo", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-canvas: var(--bws-canvas);
+  --color-surface: var(--bws-surface);
+  --color-surface-2: var(--bws-surface-2);
+  --color-surface-3: var(--bws-surface-3);
+  --color-line: var(--bws-line);
+  --color-line-strong: var(--bws-line-strong);
+  --color-fg: var(--bws-fg);
+  --color-fg-2: var(--bws-fg-2);
+  --color-muted: var(--bws-muted);
+  --color-accent: var(--bws-accent);
+  --color-accent-2: var(--bws-accent-2);
 }
 
-/* Subtle architectural grid overlay */
-.studio-grid-bg {
-  background-size: 36px 36px;
+:root {
+  --bws-canvas: #090e1c;
+  --bws-surface: #0e1321;
+  --bws-surface-2: #161b2a;
+  --bws-surface-3: #1f2535;
+  --bws-line: rgba(148, 163, 184, 0.12);
+  --bws-line-strong: rgba(148, 163, 184, 0.22);
+  --bws-fg: #f8fafc;
+  --bws-fg-2: #e2e8f0;
+  --bws-muted: #94a3b8;
+  --bws-accent: #38bdf8;
+  --bws-accent-2: #3b82f6;
+  --bws-glow: rgba(56, 189, 248, 0.45);
+  --bws-glow-soft: rgba(56, 189, 248, 0.08);
+  color-scheme: dark;
+}
+
+html.light {
+  --bws-canvas: #eef1f6;
+  --bws-surface: #ffffff;
+  --bws-surface-2: #f7f9fc;
+  --bws-surface-3: #e5eaf1;
+  --bws-line: rgba(15, 23, 42, 0.09);
+  --bws-line-strong: rgba(15, 23, 42, 0.16);
+  --bws-fg: #0b1220;
+  --bws-fg-2: #334155;
+  --bws-muted: #5b6779;
+  --bws-accent: #0369a1;
+  --bws-accent-2: #2563eb;
+  --bws-glow: rgba(3, 105, 161, 0.3);
+  --bws-glow-soft: rgba(3, 105, 161, 0.06);
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  background: var(--bws-canvas);
+  color: var(--bws-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--bws-accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ---------- Glowing brand mark ---------- */
+.brand-mark {
+  filter: drop-shadow(0 0 6px var(--bws-glow)) drop-shadow(0 0 18px var(--bws-glow-soft));
+  animation: brand-pulse 4s ease-in-out infinite;
+  transition: transform 300ms ease;
+}
+@media (hover: hover) {
+  .brand-link:hover .brand-mark { transform: scale(1.06); }
+}
+@keyframes brand-pulse {
+  0%, 100% { filter: drop-shadow(0 0 5px var(--bws-glow)) drop-shadow(0 0 14px var(--bws-glow-soft)); }
+  50% { filter: drop-shadow(0 0 10px var(--bws-glow)) drop-shadow(0 0 28px var(--bws-glow)); }
+}
+
+/* ---------- Viewport blueprint grid that lights up under the cursor ---------- */
+.glow-backdrop { --mx: 50%; --my: 30%; --glow: 0; position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+.glow-backdrop > div { position: absolute; inset: 0; }
+.glow-grid {
   background-image:
-    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+    linear-gradient(var(--bws-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bws-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center top;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 80%);
+}
+.glow-grid-lit {
+  opacity: calc(var(--glow) * 0.8);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--bws-accent) 34%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--bws-accent) 34%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center top;
+  mask-image: radial-gradient(circle 240px at var(--mx) var(--my), #000 0%, transparent 100%);
+}
+.glow-spot {
+  opacity: var(--glow);
+  background: radial-gradient(circle 300px at var(--mx) var(--my), color-mix(in srgb, var(--bws-accent) 6%, transparent), transparent 70%);
 }
 
-/* Custom sleek scrollbars */
-::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+/* ---------- Glow cards: cursor-tracked gradient border + spotlight ---------- */
+[data-glow-card] { position: relative; isolation: isolate; }
+[data-glow-card]::before,
+[data-glow-card]::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none; opacity: 0; transition: opacity 300ms ease;
+}
+[data-glow-card]::before {
+  padding: 1px;
+  background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--bws-accent) 70%, transparent), transparent 45%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  z-index: 2;
+}
+[data-glow-card]::after {
+  background: radial-gradient(520px circle at var(--mx, 50%) var(--my, 0%), var(--bws-glow-soft), transparent 50%);
+  z-index: -1;
+}
+@media (hover: hover) {
+  [data-glow-card]:hover::before,
+  [data-glow-card]:hover::after { opacity: 1; }
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.35);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
-}
-
-/* Shiki code block overrides */
-.shiki-code-container pre.shiki {
+/* ---------- Code editor (always dark, Shiki tokens) ---------- */
+.code-view pre.shiki {
   background: transparent !important;
   margin: 0;
   padding: 0;
   font-size: 0.8125rem;
-  line-height: 1.65;
+  line-height: 1.75;
   tab-size: 2;
-  white-space: pre-wrap;
-  word-break: break-word;
+  counter-reset: line;
 }
-
-/* Shimmer sweep animation for Stage Milestone 3 */
-@keyframes studio-shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+.code-view pre.shiki code { display: block; min-width: max-content; }
+.code-view .line {
+  display: inline-block;
+  width: 100%;
+  padding-inline: 0.75rem 1.25rem;
+  border-inline-start: 2px solid transparent;
+  transition: opacity 250ms ease, background-color 250ms ease;
 }
+.code-view .line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.75rem;
+  margin-inline-end: 1rem;
+  text-align: end;
+  color: rgba(148, 163, 184, 0.35);
+}
+.code-view .line.is-dim { opacity: 0.38; }
+.code-view .line.is-active {
+  background: rgba(56, 189, 248, 0.07);
+  border-inline-start-color: #38bdf8;
+}
+.code-view .typing-caret {
+  display: inline-block; width: 0.55em; height: 1.1em; margin-inline-start: 1px;
+  vertical-align: text-bottom; background: #38bdf8; animation: caret 1s steps(1) infinite;
+}
+@keyframes caret { 50% { opacity: 0; } }
 
-.animate-studio-shimmer {
-  animation: studio-shimmer 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+/* Shimmer sweep used by the step-3 preview */
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.animate-sweep { animation: sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--bws-line-strong); border-radius: 9999px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .brand-mark, .animate-sweep, .code-view .typing-caret { animation: none; }
 }

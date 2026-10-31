@@ -1,46 +1,49 @@
-# @mo-elsherbiny/image-upload-kit — Interactive Studio & Blur-Up Lab
+# image-upload-kit-studio
 
-Interactive developer showcase and live Sharp optimization sandbox for [`@mo-elsherbiny/image-upload-kit`](https://www.npmjs.com/package/@mo-elsherbiny/image-upload-kit) ([GitHub Repository](https://github.com/MoElsherbiny/image-upload-kit)).
+> Interactive code-to-UI studio & Sharp optimization playground for [`@mo-elsherbiny/image-upload-kit`](https://www.npmjs.com/package/@mo-elsherbiny/image-upload-kit) — built by [buildwithsherbo](https://www.buildwithsherbo.com/).
 
-![Interactive Code Studio](./public/demo-code-studio.png)
-
-![3-Way Placeholder Lab & Live Sharp Uploader](./public/demo-blur-lab.png)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-upload--kit.buildwithsherbo.com-0284c7?style=for-the-badge)](https://upload-kit.buildwithsherbo.com)
+[![npm version](https://img.shields.io/npm/v/@mo-elsherbiny/image-upload-kit?color=38bdf8&style=for-the-badge)](https://www.npmjs.com/package/@mo-elsherbiny/image-upload-kit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
 
 ---
 
-## Highlights
+## What is this?
 
-1. **Synchronized Code-to-UI Studio (`AnimatedCodeEditor` + `LiveOutputStage`)**:
-   - Step through the 4-stage lifecycle of `<AnimatedImage />`, `<SingleImageUpload />`, and `createUploadHttpHandler` (`1. Import` → `2. Mount Placeholder` → `3. Pre-Decode & Crossfade` → `4. Next.js / Full Pipeline`).
-   - Syntax-highlighted with **Shiki (`github-dark-Default`)**, auto-play progression, line highlighting, and active line gutter glow synced to the image's 4-edge dominant color.
-   - Real-time `<AnimatedImage />` stage with interactive **crossfade duration slider** (`200ms–2000ms`), **shimmer sweep toggle**, **placeholder cascade switcher** (`Auto Cascade` vs `WebP LQIP` vs `BlurHash` vs `4-Edge SVG`), and **DOM Lifecycle Telemetry** (`data-slot`, `data-state`, `aria-busy`, and placeholder unmount status).
+**image-upload-kit-studio** is the official interactive developer playground for [`@mo-elsherbiny/image-upload-kit`](https://github.com/MoElsherbiny/image-upload-kit).
 
-2. **3-Way Placeholder Comparison Lab (`BlurLabInspector`)**:
-   - Side-by-side visual comparison of **WebP LQIP Data URL** (`< 1 KB`), **Client-Decoded BlurHash Canvas**, and **4-Edge Ambient Color SVG** against the full-resolution optimized asset.
-   - One-click JSON payload inspector for the complete `UploadedImageData` contract.
+Instead of static documentation, it lets developers:
+1. **Watch the Code Write Itself**: Synchronized Shiki IDE typing code milestone-by-milestone (`<AnimatedImage />`, server upload route, and React dropzone field) while the live preview mutates in real time at 60 FPS.
+2. **Interactive 4-Layer Placeholder Lab**: Side-by-side comparison of **4-Edge Ambient Color**, **Client BlurHash**, **WebP LQIP Data URL**, and the final **Sharp AVIF/WebP asset**.
+3. **Live Sharp Upload Sandbox**: Drop any photo to run real server-side Sharp size-guarding and watch the code editor re-type itself with your own image's metrics!
 
-3. **Real-Time In-Browser + Vite Server Sharp Pipeline**:
-   - Powered by a custom Vite backend middleware (`server/apiPlugin.ts`) running the real `@mo-elsherbiny/image-upload-kit/server` (`createImageUploader` + `createUploadHttpHandler`) and `@mo-elsherbiny/image-upload-kit/storage` (`createMemoryStorageAdapter`).
-   - Drop any PNG, JPEG, WebP, AVIF, or SVG into the live `<SingleImageUpload />` dropzone to watch Sharp AVIF/WebP size-guarding, WebP LQIP generation, BlurHash encoding, and 4-edge dominant color extraction in real time.
-   - Switch between standard visual presets (`hero`, `cover`, `card`, `avatar`, `thumbnail`, `logo`, `original`), **Dark / Light theme**, and **English (`ltr`) / Arabic (`rtl`)** localization.
+---
+
+## Tech Stack
+
+- **Framework**: Vite 6 + React 19 + TypeScript
+- **Styling**: Tailwind CSS v4 + custom cursor glow tokens
+- **Syntax Highlighting**: Shiki fine-grained core (`github-dark-default`)
+- **Animation**: Motion (`motion/react`)
+- **Image Optimization**: `@mo-elsherbiny/image-upload-kit/server` + Sharp
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/MoElsherbiny/image-upload-kit-demo.git
-cd image-upload-kit-demo
+# 1. Clone repository
+git clone https://github.com/MoElsherbiny/image-upload-kit-studio.git
+cd image-upload-kit-studio
 
 # 2. Install dependencies
 npm install
 
-# 3. Start the interactive studio (http://localhost:5173)
+# 3. Start interactive studio (http://localhost:5173)
 npm run dev
 ```
 
-### Build for Production
+### Production Build
 
 ```bash
 npm run build
@@ -49,12 +52,10 @@ npm run preview
 
 ---
 
-## Related Links
+## Author & Brand
 
-- **npm Package**: [`@mo-elsherbiny/image-upload-kit`](https://www.npmjs.com/package/@mo-elsherbiny/image-upload-kit)
-- **Core Library Repository**: [`MoElsherbiny/image-upload-kit`](https://github.com/MoElsherbiny/image-upload-kit)
-- **Author**: [Mo Elsherbiny](https://www.buildwithsherbo.com/) (`@MoElsherbiny`)
+- **Identity**: [buildwithsherbo](https://www.buildwithsherbo.com/)
+- **Author**: Mohamed Elsherbiny ([@MoElsherbiny](https://github.com/MoElsherbiny))
+- **Core Library**: [`@mo-elsherbiny/image-upload-kit`](https://www.npmjs.com/package/@mo-elsherbiny/image-upload-kit)
 
-## License
-
-MIT © [Mo Elsherbiny](https://www.buildwithsherbo.com/)
+Distributed under the [MIT License](./LICENSE).

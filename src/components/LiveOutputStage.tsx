@@ -1,254 +1,137 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  AnimatedImage,
-  createFallbackBlurSvg,
-  resolvePlaceholderUrl,
-} from '@mo-elsherbiny/image-upload-kit/react';
-import {
-  decodeBlurHashToDataURL,
-  type UploadedImageData,
-} from '@mo-elsherbiny/image-upload-kit';
-import { Eye, Gauge, Layers, RefreshCw, Sparkles, Wifi } from 'lucide-react';
+import type { StandardPresetName, UploadedImageData } from '@mo-elsherbiny/image-upload-kit';
+import { Eye, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { PlaceholderMode } from '../data/codeScenarios';
+import { useState } from 'react';
+import type { CodeScenario, PlaceholderMode } from '../data/codeScenarios';
+import { ImageStageOutput, type NetworkDelay } from './output/ImageStageOutput';
+import { PipelineOutput } from './output/PipelineOutput';
+import { UploadUiOutput } from './output/UploadUiOutput';
 
-export interface LiveOutputStageProps {
-  activeImage: UploadedImageData;
-  activeStep: 1 | 2 | 3 | 4;
+export interface PlaygroundSettings {
   duration: number;
-  onChangeDuration: (ms: number) => void;
   showShimmer: boolean;
-  onToggleShimmer: () => void;
   placeholderMode: PlaceholderMode;
-  onChangePlaceholderMode: (mode: PlaceholderMode) => void;
+  preset: StandardPresetName;
 }
 
-const NETWORK_OPTIONS = [
-  { label: '0ms Instant', value: 0 },
-  { label: '600ms Fast 3G', value: 600 },
-  { label: '1.5s Slow 3G', value: 1500 },
-  { label: 'Freeze Blur', value: -1 },
-] as const;
+interface LiveOutputStageProps {
+  scenario: CodeScenario;
+  completed: number;
+  image: UploadedImageData;
+  settings: PlaygroundSettings;
+  onChangeSettings: (patch: Partial<PlaygroundSettings>) => void;
+  onUploaded: (image: UploadedImageData) => void;
+}
 
-const PLACEHOLDER_MODES: Array<{ id: PlaceholderMode; label: string }> = [
-  { id: 'auto', label: 'Auto Hierarchy' },
-  { id: 'lqip', label: 'LQIP Only' },
-  { id: 'blurhash', label: 'BlurHash Only' },
-  { id: 'color', label: '4-Edge Color' },
+const DELAYS: Array<{ value: NetworkDelay; label: string }> = [
+  { value: 0, label: 'Fast' },
+  { value: 800, label: '4G' },
+  { value: 2000, label: 'Slow 3G' },
+  { value: 'hold', label: 'Hold' },
 ];
 
-export function LiveOutputStage({
-  activeImage,
-  activeStep,
-  duration,
-  onChangeDuration,
-  showShimmer,
-  onToggleShimmer,
-  placeholderMode,
-  onChangePlaceholderMode,
-}: LiveOutputStageProps) {
-  const [networkDelayMs, setNetworkDelayMs] = useState<0 | 600 | 1500 | -1>(0);
-  const [delayCleared, setDelayCleared] = useState(true);
-  const [remountKey, setRemountKey] = useState(0);
+const MODES: Array<{ value: PlaceholderMode; label: string }> = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'lqip', label: 'LQIP' },
+  { value: 'blurhash', label: 'BlurHash' },
+  { value: 'color', label: 'Color' },
+];
 
-  useEffect(() => {
-    if (networkDelayMs === -1) {
-      setDelayCleared(false);
-      return;
-    }
-    if (networkDelayMs === 0) {
-      setDelayCleared(true);
-      return;
-    }
-    setDelayCleared(false);
-    const t = window.setTimeout(() => setDelayCleared(true), networkDelayMs);
-    return () => window.clearTimeout(t);
-  }, [activeImage.url, remountKey, networkDelayMs]);
+const PRESETS: StandardPresetName[] = ['hero', 'cover', 'card', 'avatar', 'thumbnail', 'logo'];
 
-  const effectiveSources = useMemo(() => {
-    const lqip = placeholderMode === 'auto' || placeholderMode === 'lqip' ? activeImage.blurDataUrl : null;
-    const hash = placeholderMode === 'auto' || placeholderMode === 'blurhash' ? activeImage.blurHash : null;
-    return { blurDataUrl: lqip, blurHash: hash, blurColor: activeImage.blurColor };
-  }, [activeImage, placeholderMode]);
-
-  const resolvedPlaceholder = useMemo(() => {
-    if (placeholderMode === 'blurhash' && activeImage.blurHash) {
-      return decodeBlurHashToDataURL(activeImage.blurHash, 32, 32) ?? createFallbackBlurSvg(activeImage.blurColor);
-    }
-    if (placeholderMode === 'color') return createFallbackBlurSvg(activeImage.blurColor);
-    return resolvePlaceholderUrl(effectiveSources);
-  }, [activeImage, placeholderMode, effectiveSources]);
-
-  const shouldMountSharpImage = activeStep === 4 && delayCleared && networkDelayMs !== -1;
-  const savingsPct = activeImage.originalSize
-    ? Math.max(1, Math.round((1 - activeImage.size / activeImage.originalSize) * 100))
-    : 86;
+export function LiveOutputStage({ scenario, completed, image, settings, onChangeSettings, onUploaded }: LiveOutputStageProps) {
+  const [networkDelay, setNetworkDelay] = useState<NetworkDelay>(800);
+  const [replayKey, setReplayKey] = useState(0);
+  const reflects = completed > 0 ? scenario.steps[completed - 1] : null;
+  const isImage = scenario.id === 'animated-image';
 
   return (
-    <section className="flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-slate-900/80 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <Eye className="h-4 w-4 text-indigo-400" />
-          <span className="text-xs font-semibold text-white">Synchronized Live Render Stage</span>
-          <span className="rounded-md border border-indigo-400/30 bg-indigo-500/15 px-2 py-0.5 font-mono text-[11px] text-indigo-200">
-            data-state=&quot;{shouldMountSharpImage ? 'loaded' : 'loading'}&quot;
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setRemountKey((k) => k + 1)}
-          className="flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/25"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          <span>Replay Crossfade</span>
-        </button>
-      </div>
-
-      <div className="relative m-4 flex min-h-[300px] flex-1 items-center justify-center overflow-hidden rounded-xl border border-white/15 shadow-inner">
-        <div className="absolute inset-0 transition-colors duration-500" style={{ backgroundColor: activeImage.blurColor }} />
-
-        {!shouldMountSharpImage && (
-          <div className="relative h-full min-h-[300px] w-full overflow-hidden">
-            {activeStep >= 2 && (
-              <img
-                src={resolvedPlaceholder}
-                alt=""
-                aria-hidden="true"
-                className="h-full min-h-[300px] w-full scale-105 object-cover blur-lg transition-opacity duration-500"
-              />
-            )}
-            {(activeStep === 3 || (showShimmer && activeStep >= 2)) && (
-              <div className="animate-studio-shimmer pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-            )}
-          </div>
-        )}
-
-        {shouldMountSharpImage && (
-          <div key={`${activeImage.url}-${remountKey}-${placeholderMode}`} className="relative h-[320px] w-full">
-            <AnimatedImage
-              src={activeImage.url}
-              alt={activeImage.altText ?? 'Optimized showcase image'}
-              blurDataUrl={effectiveSources.blurDataUrl}
-              blurHash={effectiveSources.blurHash}
-              blurColor={effectiveSources.blurColor}
-              animationDuration={duration}
-              showShimmer={showShimmer}
-              fill
-              objectFit="cover"
-            />
-          </div>
-        )}
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${activeStep}-${shouldMountSharpImage}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/15 bg-slate-950/80 px-3.5 py-2 backdrop-blur-md"
-          >
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full border border-white/30" style={{ backgroundColor: activeImage.blurColor }} />
-              <span className="font-mono text-xs font-medium text-white">
-                {activeStep === 1 && 'Step 1: 4-Edge Ambient Container Painted'}
-                {activeStep === 2 && `Step 2: ${placeholderMode.toUpperCase()} Placeholder Layer Mounted`}
-                {activeStep === 3 && 'Step 3: Specular Shimmer Wave Active'}
-                {activeStep === 4 &&
-                  (shouldMountSharpImage
-                    ? `Step 4: Decoded & ${duration}ms GPU Crossfade Complete`
-                    : 'Step 4: Waiting for Simulated Network Stream...')}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 font-mono text-[11px] text-emerald-300">
-              <span>{activeImage.format.toUpperCase()}</span>
-              <span>•</span>
-              <span>{(activeImage.size / 1024).toFixed(1)} KB</span>
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px]">-{savingsPct}%</span>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 border-t border-white/10 bg-slate-900/75 p-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
-            <Wifi className="h-3.5 w-3.5 text-indigo-400" />
-            <span>Simulated Network Throttling</span>
-          </label>
-          <div className="flex flex-wrap gap-1">
-            {NETWORK_OPTIONS.map((opt) => (
-              <button
-                key={opt.label}
-                type="button"
-                onClick={() => setNetworkDelayMs(opt.value)}
-                className={`rounded-lg border px-2 py-1 font-mono text-[11px] transition ${
-                  networkDelayMs === opt.value
-                    ? 'border-indigo-400/50 bg-indigo-500/20 text-white'
-                    : 'border-white/10 bg-slate-950/60 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
-            <Layers className="h-3.5 w-3.5 text-indigo-400" />
-            <span>Active Placeholder Source</span>
-          </label>
-          <div className="flex flex-wrap gap-1">
-            {PLACEHOLDER_MODES.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onChangePlaceholderMode(m.id)}
-                className={`rounded-lg border px-2 py-1 font-mono text-[11px] transition ${
-                  placeholderMode === m.id
-                    ? 'border-emerald-400/50 bg-emerald-500/20 text-emerald-200'
-                    : 'border-white/10 bg-slate-950/60 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="col-span-full flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex flex-1 items-center gap-3">
-            <Gauge className="h-4 w-4 text-indigo-400" />
-            <span className="font-mono text-xs text-slate-300">
-              Crossfade: <strong className="text-white">{duration}ms</strong>
-            </span>
-            <input
-              type="range"
-              min={250}
-              max={2000}
-              step={50}
-              value={duration}
-              onChange={(e) => onChangeDuration(Number(e.target.value))}
-              className="h-1.5 flex-1 cursor-pointer accent-indigo-500"
-            />
-          </div>
-
+    <section data-glow-card className="flex h-full flex-col rounded-2xl border border-line bg-surface shadow-xl shadow-black/10" aria-label="Live output">
+      <header className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-fg">
+          <Eye className="h-4 w-4 text-accent" /> Live output
+        </h3>
+        {isImage && completed === 4 && (
           <button
             type="button"
-            onClick={onToggleShimmer}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium transition ${
-              showShimmer
-                ? 'border-amber-400/40 bg-amber-500/15 text-amber-200'
-                : 'border-white/10 bg-slate-950/60 text-slate-400 hover:text-white'
-            }`}
+            onClick={() => setReplayKey((k) => k + 1)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-fg-2 transition hover:border-accent hover:text-accent"
           >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Shimmer: {showShimmer ? 'ON' : 'OFF'}</span>
+            <RefreshCw className="h-3.5 w-3.5" /> Replay blur-up
           </button>
+        )}
+      </header>
+
+      <div className="flex-1 p-4">
+        {isImage && (
+          <ImageStageOutput image={image} completed={completed} duration={settings.duration} showShimmer={settings.showShimmer} placeholderMode={settings.placeholderMode} networkDelay={networkDelay} replayKey={replayKey} />
+        )}
+        {scenario.id === 'upload-route' && <PipelineOutput image={image} completed={completed} preset={settings.preset} />}
+        {scenario.id === 'upload-ui' && <UploadUiOutput image={image} completed={completed} preset={settings.preset} onUploaded={onUploaded} />}
+
+        {/* What the current step reflects */}
+        <div className="mt-4 min-h-[3.5rem] rounded-xl bg-surface-2 px-4 py-3" aria-live="polite">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`${scenario.id}-${completed}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.25 }}
+              className="text-sm leading-relaxed text-fg-2"
+            >
+              {reflects ? (
+                <>
+                  <span className="me-2 font-mono text-xs font-semibold text-accent">STEP {completed}</span>
+                  {reflects.reflects}
+                </>
+              ) : (
+                <span className="text-muted">{scenario.summary} — the result builds up as each step is written.</span>
+              )}
+            </motion.p>
+          </AnimatePresence>
         </div>
       </div>
+
+      {/* Playground controls — they rewrite the code on the left, too */}
+      <footer className="space-y-3 border-t border-line px-4 py-4">
+        <p className="flex items-center gap-2 text-xs font-semibold text-muted">
+          <SlidersHorizontal className="h-3.5 w-3.5" /> Tweak it — the code updates live
+        </p>
+        {isImage ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Segmented label="Placeholder" value={settings.placeholderMode} options={MODES} onChange={(v) => onChangeSettings({ placeholderMode: v })} />
+            <Segmented label="Network" value={networkDelay} options={DELAYS} onChange={(v) => { setNetworkDelay(v); setReplayKey((k) => k + 1); }} />
+            <label className="flex items-center gap-3 text-xs text-muted">
+              <span className="w-16 shrink-0">Fade</span>
+              <input type="range" min={200} max={2000} step={100} value={settings.duration} onChange={(e) => onChangeSettings({ duration: Number(e.target.value) })} className="h-1.5 flex-1 cursor-pointer accent-[var(--bws-accent)]" aria-label="Crossfade duration" />
+              <span className="w-14 text-end font-mono text-fg-2">{settings.duration}ms</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 text-xs text-muted">
+              <span className="w-16 shrink-0">Shimmer</span>
+              <input type="checkbox" checked={settings.showShimmer} onChange={(e) => onChangeSettings({ showShimmer: e.target.checked })} className="h-4 w-4 cursor-pointer accent-[var(--bws-accent)]" />
+              <span className="font-mono text-fg-2">{settings.showShimmer ? 'on' : 'off'}</span>
+            </label>
+          </div>
+        ) : (
+          <Segmented label="Preset" value={settings.preset} options={PRESETS.map((p) => ({ value: p, label: p }))} onChange={(v) => onChangeSettings({ preset: v })} />
+        )}
+      </footer>
     </section>
+  );
+}
+
+function Segmented<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: Array<{ value: T; label: string }>; onChange: (v: T) => void }) {
+  return (
+    <div className="flex items-center gap-3 text-xs text-muted">
+      <span className="w-16 shrink-0">{label}</span>
+      <div className="no-scrollbar flex flex-1 overflow-x-auto rounded-lg bg-surface-2 p-0.5" role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <button key={String(o.value)} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)} className={`flex-1 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[11px] transition ${value === o.value ? 'bg-surface text-fg shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
