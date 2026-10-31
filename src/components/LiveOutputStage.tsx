@@ -1,8 +1,8 @@
-import type { StandardPresetName, UploadedImageData } from '@mo-elsherbiny/image-upload-kit';
+import { useEffect, useRef, useState } from 'react';
+import type { StandardPresetName, UploadedImageData } from 'img-upload-kit';
 import { Eye, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
-import type { CodeScenario, PlaceholderMode } from '../data/codeScenarios';
+import type { CodeScenario, ImageFitMode, PlaceholderMode } from '../data/codeScenarios';
 import { ImageStageOutput, type NetworkDelay } from './output/ImageStageOutput';
 import { PipelineOutput } from './output/PipelineOutput';
 import { UploadUiOutput } from './output/UploadUiOutput';
@@ -11,6 +11,7 @@ export interface PlaygroundSettings {
   duration: number;
   showShimmer: boolean;
   placeholderMode: PlaceholderMode;
+  objectFit: ImageFitMode;
   preset: StandardPresetName;
 }
 
@@ -20,7 +21,7 @@ interface LiveOutputStageProps {
   image: UploadedImageData;
   settings: PlaygroundSettings;
   onChangeSettings: (patch: Partial<PlaygroundSettings>) => void;
-  onUploaded: (image: UploadedImageData) => void;
+  onUploaded: (image: UploadedImageData, meta?: { label?: string; preset?: StandardPresetName }) => void;
 }
 
 const DELAYS: Array<{ value: NetworkDelay; label: string }> = [
@@ -37,11 +38,36 @@ const MODES: Array<{ value: PlaceholderMode; label: string }> = [
   { value: 'color', label: 'Color' },
 ];
 
-const PRESETS: StandardPresetName[] = ['hero', 'cover', 'card', 'avatar', 'thumbnail', 'logo'];
+const FITS: Array<{ value: ImageFitMode; label: string }> = [
+  { value: 'cover', label: 'Cover' },
+  { value: 'contain', label: 'Contain' },
+];
 
-export function LiveOutputStage({ scenario, completed, image, settings, onChangeSettings, onUploaded }: LiveOutputStageProps) {
-  const [networkDelay, setNetworkDelay] = useState<NetworkDelay>(800);
+const PRESETS: StandardPresetName[] = ['hero', 'cover', 'card', 'avatar', 'thumbnail', 'logo', 'original'];
+
+export function LiveOutputStage({
+  scenario,
+  completed,
+  image,
+  settings,
+  onChangeSettings,
+  onUploaded,
+}: LiveOutputStageProps) {
+  const [networkDelay, setNetworkDelay] = useState<NetworkDelay>(400 as NetworkDelay);
+  const [activeDelay, setActiveDelay] = useState<NetworkDelay>(800);
   const [replayKey, setReplayKey] = useState(0);
+  const prevUrlRef = useRef(image.url);
+  void networkDelay;
+
+  // Ensure a newly uploaded or selected image never stays frozen on 'hold'.
+  useEffect(() => {
+    if (prevUrlRef.current !== image.url) {
+      prevUrlRef.current = image.url;
+      setActiveDelay((cur) => (cur === 'hold' ? 800 : cur));
+      setReplayKey((k) => k + 1);
+    }
+  }, [image.url]);
+
   const reflects = completed > 0 ? scenario.steps[completed - 1] : null;
   const isImage = scenario.id === 'animated-image';
 
@@ -54,7 +80,10 @@ export function LiveOutputStage({ scenario, completed, image, settings, onChange
         {isImage && completed === 4 && (
           <button
             type="button"
-            onClick={() => setReplayKey((k) => k + 1)}
+            onClick={() => {
+              if (activeDelay === 'hold') setActiveDelay(800);
+              setReplayKey((k) => k + 1);
+            }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-fg-2 transition hover:border-accent hover:text-accent"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Replay blur-up
@@ -64,20 +93,36 @@ export function LiveOutputStage({ scenario, completed, image, settings, onChange
 
       <div className="flex-1 p-4">
         {isImage && (
-          <ImageStageOutput image={image} completed={completed} duration={settings.duration} showShimmer={settings.showShimmer} placeholderMode={settings.placeholderMode} networkDelay={networkDelay} replayKey={replayKey} />
+          <ImageStageOutput
+            image={image}
+            completed={completed}
+            duration={settings.duration}
+            showShimmer={settings.showShimmer}
+            placeholderMode={settings.placeholderMode}
+            objectFit={settings.objectFit}
+            networkDelay={activeDelay}
+            replayKey={replayKey}
+          />
         )}
         {scenario.id === 'upload-route' && <PipelineOutput image={image} completed={completed} preset={settings.preset} />}
-        {scenario.id === 'upload-ui' && <UploadUiOutput image={image} completed={completed} preset={settings.preset} onUploaded={onUploaded} />}
+        {scenario.id === 'upload-ui' && (
+          <UploadUiOutput
+            image={image}
+            completed={completed}
+            preset={settings.preset}
+            objectFit={settings.objectFit}
+            onUploaded={onUploaded}
+          />
+        )}
 
-        {/* What the current step reflects */}
         <div className="mt-4 min-h-[3.5rem] rounded-xl bg-surface-2 px-4 py-3" aria-live="polite">
           <AnimatePresence mode="wait">
             <motion.p
-              key={`${scenario.id}-${completed}`}
+              key={`${scenario.id}-${completed}-${image.url}`}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.22 }}
               className="text-sm leading-relaxed text-fg-2"
             >
               {reflects ? (
@@ -93,41 +138,97 @@ export function LiveOutputStage({ scenario, completed, image, settings, onChange
         </div>
       </div>
 
-      {/* Playground controls — they rewrite the code on the left, too */}
       <footer className="space-y-3 border-t border-line px-4 py-4">
         <p className="flex items-center gap-2 text-xs font-semibold text-muted">
           <SlidersHorizontal className="h-3.5 w-3.5" /> Tweak it — the code updates live
         </p>
         {isImage ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Segmented label="Placeholder" value={settings.placeholderMode} options={MODES} onChange={(v) => onChangeSettings({ placeholderMode: v })} />
-            <Segmented label="Network" value={networkDelay} options={DELAYS} onChange={(v) => { setNetworkDelay(v); setReplayKey((k) => k + 1); }} />
-            <label className="flex items-center gap-3 text-xs text-muted">
-              <span className="w-16 shrink-0">Fade</span>
-              <input type="range" min={200} max={2000} step={100} value={settings.duration} onChange={(e) => onChangeSettings({ duration: Number(e.target.value) })} className="h-1.5 flex-1 cursor-pointer accent-[var(--bws-accent)]" aria-label="Crossfade duration" />
-              <span className="w-14 text-end font-mono text-fg-2">{settings.duration}ms</span>
-            </label>
+            <Segmented
+              label="Placeholder"
+              value={settings.placeholderMode}
+              options={MODES}
+              onChange={(v) => onChangeSettings({ placeholderMode: v })}
+            />
+            <Segmented
+              label="Network"
+              value={activeDelay}
+              options={DELAYS}
+              onChange={(v) => {
+                setActiveDelay(v);
+                setReplayKey((k) => k + 1);
+              }}
+            />
+            <Segmented
+              label="Fit"
+              value={settings.objectFit}
+              options={FITS}
+              onChange={(v) => onChangeSettings({ objectFit: v })}
+            />
             <label className="flex cursor-pointer items-center gap-3 text-xs text-muted">
               <span className="w-16 shrink-0">Shimmer</span>
-              <input type="checkbox" checked={settings.showShimmer} onChange={(e) => onChangeSettings({ showShimmer: e.target.checked })} className="h-4 w-4 cursor-pointer accent-[var(--bws-accent)]" />
+              <input
+                type="checkbox"
+                checked={settings.showShimmer}
+                onChange={(e) => onChangeSettings({ showShimmer: e.target.checked })}
+                className="h-4 w-4 cursor-pointer accent-[var(--bws-accent)]"
+              />
               <span className="font-mono text-fg-2">{settings.showShimmer ? 'on' : 'off'}</span>
+            </label>
+            <label className="flex items-center gap-3 text-xs text-muted sm:col-span-2">
+              <span className="w-16 shrink-0">Fade</span>
+              <input
+                type="range"
+                min={200}
+                max={2000}
+                step={100}
+                value={settings.duration}
+                onChange={(e) => onChangeSettings({ duration: Number(e.target.value) })}
+                className="h-1.5 flex-1 cursor-pointer accent-[var(--bws-accent)]"
+                aria-label="Crossfade duration"
+              />
+              <span className="w-14 text-end font-mono text-fg-2">{settings.duration}ms</span>
             </label>
           </div>
         ) : (
-          <Segmented label="Preset" value={settings.preset} options={PRESETS.map((p) => ({ value: p, label: p }))} onChange={(v) => onChangeSettings({ preset: v })} />
+          <Segmented
+            label="Preset"
+            value={settings.preset}
+            options={PRESETS.map((p) => ({ value: p, label: p }))}
+            onChange={(v) => onChangeSettings({ preset: v })}
+          />
         )}
       </footer>
     </section>
   );
 }
 
-function Segmented<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: Array<{ value: T; label: string }>; onChange: (v: T) => void }) {
+function Segmented<T extends string | number>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (v: T) => void;
+}) {
   return (
     <div className="flex items-center gap-3 text-xs text-muted">
       <span className="w-16 shrink-0">{label}</span>
       <div className="no-scrollbar flex flex-1 overflow-x-auto rounded-lg bg-surface-2 p-0.5" role="radiogroup" aria-label={label}>
         {options.map((o) => (
-          <button key={String(o.value)} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)} className={`flex-1 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[11px] transition ${value === o.value ? 'bg-surface text-fg shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'}`}>
+          <button
+            key={String(o.value)}
+            type="button"
+            role="radio"
+            aria-checked={value === o.value}
+            onClick={() => onChange(o.value)}
+            className={`flex-1 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[11px] transition ${
+              value === o.value ? 'bg-surface text-fg shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'
+            }`}
+          >
             {o.label}
           </button>
         ))}

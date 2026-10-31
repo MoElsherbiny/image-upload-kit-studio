@@ -25,7 +25,7 @@ export function Navbar({ theme, onToggleTheme, locale, onToggleLocale }: NavbarP
         <div className="flex items-center gap-3">
           <BrandLogo />
           <span className="hidden h-5 w-px bg-line-strong sm:block" aria-hidden />
-          <span className="hidden font-mono text-xs text-muted sm:block">image-upload-kit</span>
+          <span className="hidden font-mono text-xs text-muted sm:block">{PKG.name}</span>
         </div>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Sections">

@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@mo-elsherbiny/image-upload-kit/styles.css";
+@import "img-upload-kit/styles.css";
 
 /* Theme tokens — mirrored from the buildwithsherbo portfolio design system */
 @custom-variant dark (&:where(.dark, .dark *));

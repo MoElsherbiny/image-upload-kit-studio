@@ -7,11 +7,11 @@ export const BRAND = {
   logo: '/brand/logo-mark.png',
 } as const;
 
-/** The published npm package (import paths must match the real package). */
+/** The published npm package (import paths match the live unscoped npm package). */
 export const PKG = {
-  name: '@mo-elsherbiny/image-upload-kit',
-  version: '1.1.0',
-  npm: 'https://www.npmjs.com/package/@mo-elsherbiny/image-upload-kit',
+  name: 'img-upload-kit',
+  version: '1.1.1',
+  npm: 'https://www.npmjs.com/package/img-upload-kit',
   repo: 'https://github.com/MoElsherbiny/image-upload-kit',
   docs: 'https://github.com/MoElsherbiny/image-upload-kit#readme',
 } as const;

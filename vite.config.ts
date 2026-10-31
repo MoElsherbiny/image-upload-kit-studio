@@ -12,16 +12,12 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Split long-lived vendor code so app changes don't bust their cache.
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          motion: ['motion/react'],
-          kit: [
-            '@mo-elsherbiny/image-upload-kit',
-            '@mo-elsherbiny/image-upload-kit/react',
-            '@mo-elsherbiny/image-upload-kit/headless',
-          ],
-          ui: ['lucide-react', 'sonner', 'canvas-confetti'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('/motion/') || id.includes('/framer-motion/')) return 'motion';
+          if (id.includes('/img-upload-kit/') || id.includes('/lucide-react/') || id.includes('/blurhash/')) return 'kit';
+          if (id.includes('/shiki/') || id.includes('/@shikijs/')) return 'shiki';
+          return 'vendor';
         },
       },
     },

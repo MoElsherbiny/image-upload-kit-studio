@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { decodeBlurHashToDataURL, type UploadedImageData } from '@mo-elsherbiny/image-upload-kit';
-import { createFallbackBlurSvg } from '@mo-elsherbiny/image-upload-kit/react';
+import { decodeBlurHashToDataURL, type UploadedImageData } from 'img-upload-kit';
+import { createFallbackBlurSvg } from 'img-upload-kit/react';
 import { Copy } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -13,48 +13,53 @@ const bytesLabel = (n: number) => (n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1
 
 /** Side-by-side view of every layer the server generates, smallest to largest. */
 export function PlaceholderLab({ image }: PlaceholderLabProps) {
+  const isPortraitOrSquare = image.width > 0 && image.height > image.width * 0.95;
+
   const layers = useMemo(() => {
     const hash = image.blurHash ?? '';
-    const lqipBytes = new TextEncoder().encode(image.blurDataUrl).length;
+    const lqipBytes = image.blurDataUrl ? new TextEncoder().encode(image.blurDataUrl).length : 0;
+    const fallbackSvg = createFallbackBlurSvg(image.blurColor);
+    const decodedHash = hash ? decodeBlurHashToDataURL(hash, 32, 32) : null;
+
     return [
       {
         name: 'Ambient color',
         size: '7 B',
-        src: createFallbackBlurSvg(image.blurColor),
-        imgClass: '',
-        note: 'Dominant color of the 4 edges. Paints the frame before anything downloads.',
+        src: fallbackSvg,
+        imgClass: 'object-cover',
+        note: 'Dominant color blended from the 4 outer edges. Paints the frame before anything downloads.',
         copy: image.blurColor,
         tag: image.blurColor,
       },
       {
         name: 'BlurHash',
-        size: `${hash.length} chars`,
-        src: hash ? decodeBlurHashToDataURL(hash, 32, 32) ?? '' : createFallbackBlurSvg(image.blurColor),
-        imgClass: '',
-        note: 'A short string decoded to a soft gradient in the browser. Great for JSON APIs.',
-        copy: hash,
-        tag: hash ? `${hash.slice(0, 14)}…` : '—',
+        size: hash ? `${hash.length} chars` : 'SVG fallback',
+        src: decodedHash || fallbackSvg,
+        imgClass: 'object-cover',
+        note: 'A compact string decoded to a smooth gradient on canvas in the browser. Great for JSON APIs.',
+        copy: hash || image.blurColor,
+        tag: hash ? `${hash.slice(0, 14)}…` : 'fallback SVG',
       },
       {
         name: 'WebP LQIP',
-        size: bytesLabel(lqipBytes),
-        src: image.blurDataUrl,
-        imgClass: 'blur-md scale-110',
-        note: 'Tiny inline data URL. Renders in the first HTML response — even with SSR.',
-        copy: image.blurDataUrl,
-        tag: 'data:image/webp…',
+        size: lqipBytes > 0 ? bytesLabel(lqipBytes) : 'SVG fallback',
+        src: image.blurDataUrl || fallbackSvg,
+        imgClass: `${isPortraitOrSquare ? 'object-contain' : 'object-cover scale-110'} blur-md`,
+        note: 'Tiny inline WebP data URL. Renders in the very first HTML response — even with SSR.',
+        copy: image.blurDataUrl || fallbackSvg,
+        tag: image.blurDataUrl ? 'data:image/webp…' : 'data:image/svg…',
       },
       {
         name: `Final ${image.format.toUpperCase()}`,
         size: bytesLabel(image.size),
         src: image.url,
-        imgClass: '',
-        note: `The optimized full image, ${image.width}×${image.height}. Crossfades in once decoded.`,
+        imgClass: isPortraitOrSquare ? 'object-contain' : 'object-cover',
+        note: `The Sharp-optimized image (${image.width}×${image.height}). Crossfades in smoothly once decoded.`,
         copy: image.url,
         tag: `${image.width}×${image.height}`,
       },
     ];
-  }, [image]);
+  }, [image, isPortraitOrSquare]);
 
   const copy = async (label: string, value: string) => {
     if (!value) return;
@@ -75,7 +80,12 @@ export function PlaceholderLab({ image }: PlaceholderLabProps) {
           className="flex flex-col overflow-hidden rounded-2xl border border-line bg-surface"
         >
           <div className="relative aspect-[4/3] overflow-hidden" style={{ backgroundColor: image.blurColor }}>
-            <img key={layer.src.slice(0, 64)} src={layer.src} alt={`${layer.name} preview`} className={`h-full w-full object-cover ${layer.imgClass}`} />
+            <img
+              key={`${image.url}-${layer.name}-${image.blurColor}`}
+              src={layer.src}
+              alt={`${layer.name} preview`}
+              className={`h-full w-full ${layer.imgClass}`}
+            />
             <span className="absolute start-3 top-3 rounded-md bg-black/55 px-2 py-0.5 font-mono text-[11px] font-semibold text-white backdrop-blur">
               {i + 1}
             </span>

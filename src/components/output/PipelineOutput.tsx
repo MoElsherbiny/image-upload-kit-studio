@@ -1,4 +1,4 @@
-import { STANDARD_PRESETS, type StandardPresetName, type UploadedImageData } from '@mo-elsherbiny/image-upload-kit';
+import { STANDARD_PRESETS, type StandardPresetName, type UploadedImageData } from 'img-upload-kit';
 import { FileJson, HardDrive, Settings2, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import { savingsPercent } from '../../data/codeScenarios';
@@ -15,16 +15,23 @@ const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
 export function PipelineOutput({ image, completed, preset }: PipelineOutputProps) {
   const config = STANDARD_PRESETS[preset];
   const original = image.originalSize ?? image.size;
-  const ratio = Math.max(0.04, image.size / Math.max(1, original));
+  const ratio = Math.max(0.04, Math.min(1, image.size / Math.max(1, original)));
+  const savings = savingsPercent(image);
+  const displayUrl =
+    image.url.startsWith('blob:') && image.storagePath
+      ? `/uploads/${image.bucket ? `${image.bucket}/` : ''}${image.storagePath}`
+      : image.url;
+
   const payload = {
-    url: image.url.length > 42 ? `${image.url.slice(0, 40)}…` : image.url,
+    url: displayUrl.length > 44 ? `${displayUrl.slice(0, 42)}…` : displayUrl,
     format: image.format,
     width: image.width,
     height: image.height,
     size: image.size,
+    originalSize: original,
     blurColor: image.blurColor,
-    blurHash: image.blurHash,
-    blurDataUrl: `${image.blurDataUrl.slice(0, 26)}…`,
+    blurHash: image.blurHash ?? null,
+    blurDataUrl: image.blurDataUrl ? `${image.blurDataUrl.slice(0, 26)}…` : '',
   };
 
   const rows = [
@@ -33,7 +40,7 @@ export function PipelineOutput({ image, completed, preset }: PipelineOutputProps
       title: 'Storage adapter',
       body: (
         <p className="font-mono text-xs text-muted">
-          local disk → <span className="text-fg-2">./public/uploads</span>
+          pluggable adapter → <span className="text-fg-2">S3 / R2 / Supabase / LocalFS</span>
         </p>
       ),
     },
@@ -47,14 +54,16 @@ export function PipelineOutput({ image, completed, preset }: PipelineOutputProps
             `≤ ${config.maxSizeMB ?? '—'} MB`,
             `quality ${config.quality ?? '—'}`,
           ].map((chip) => (
-            <span key={chip} className="rounded-md bg-surface-3 px-2 py-0.5 text-fg-2">{chip}</span>
+            <span key={chip} className="rounded-md bg-surface-3 px-2 py-0.5 text-fg-2">
+              {chip}
+            </span>
           ))}
         </div>
       ),
     },
     {
       icon: Zap,
-      title: `Sharp → ${image.format.toUpperCase()}  (−${savingsPercent(image)}%)`,
+      title: `Sharp → ${image.format.toUpperCase()}  ${savings > 0 ? `(−${savings}%)` : '(size-guarded)'}`,
       body: (
         <div className="space-y-1.5 font-mono text-[11px] text-muted">
           <Bar label="original" value={kb(original)} width={1} tone="bg-slate-500/60" show={completed >= 3} />
@@ -108,7 +117,7 @@ function Bar({ label, value, width, tone, show }: { label: string; value: string
           className={`h-full rounded-full ${tone}`}
           initial={{ width: 0 }}
           animate={{ width: show ? `${width * 100}%` : 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 0.65, ease: 'easeOut' }}
         />
       </div>
       <span className="w-16 shrink-0 text-end text-fg-2">{value}</span>

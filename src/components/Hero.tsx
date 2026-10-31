@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { UploadedImageData } from '@mo-elsherbiny/image-upload-kit';
+import type { UploadedImageData } from 'img-upload-kit';
 import { ArrowRight, Check, Copy, Terminal } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -15,7 +15,8 @@ const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
 export function Hero({ activeImage }: HeroProps) {
   const [pm, setPm] = useState<PackageManager>('npm');
   const [copied, setCopied] = useState(false);
-  const lqipBytes = new TextEncoder().encode(activeImage.blurDataUrl).length;
+  const lqipBytes = activeImage.blurDataUrl ? new TextEncoder().encode(activeImage.blurDataUrl).length : 0;
+  const savings = savingsPercent(activeImage);
 
   const copyInstall = async () => {
     await navigator.clipboard.writeText(INSTALL_COMMANDS[pm]);
@@ -25,10 +26,27 @@ export function Hero({ activeImage }: HeroProps) {
   };
 
   const stats = [
-    { label: 'Smaller file', value: `−${savingsPercent(activeImage)}%`, hint: `${kb(activeImage.originalSize ?? activeImage.size)} → ${kb(activeImage.size)}` },
-    { label: 'Output format', value: activeImage.format.toUpperCase(), hint: `${activeImage.width}×${activeImage.height}` },
-    { label: 'Blur preview', value: `${lqipBytes} B`, hint: 'inline WebP LQIP' },
-    { label: 'Ambient color', value: activeImage.blurColor, hint: 'from the 4 edges', swatch: activeImage.blurColor },
+    {
+      label: savings > 0 ? 'Smaller file' : 'Size-guard',
+      value: savings > 0 ? `−${savings}%` : '0% bloat',
+      hint: `${kb(activeImage.originalSize ?? activeImage.size)} → ${kb(activeImage.size)}`,
+    },
+    {
+      label: 'Output format',
+      value: activeImage.format.toUpperCase(),
+      hint: `${activeImage.width}×${activeImage.height}`,
+    },
+    {
+      label: 'Blur preview',
+      value: lqipBytes > 0 ? `${lqipBytes} B` : 'SVG',
+      hint: lqipBytes > 0 ? 'inline WebP LQIP' : 'vector fallback',
+    },
+    {
+      label: 'Ambient color',
+      value: activeImage.blurColor,
+      hint: 'from the 4 edges',
+      swatch: activeImage.blurColor,
+    },
   ];
 
   return (
@@ -46,7 +64,7 @@ export function Hero({ activeImage }: HeroProps) {
           className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 font-mono text-xs text-muted transition hover:border-line-strong hover:text-fg"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400" />
-          v{PKG.version} on npm
+          {PKG.name} v{PKG.version} on npm
         </a>
 
         <h1 className="mt-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-fg sm:text-6xl">
@@ -58,8 +76,8 @@ export function Hero({ activeImage }: HeroProps) {
         </h1>
 
         <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-          Sharp AVIF/WebP optimization, instant blur-up placeholders and a ready-made React upload UI —
-          in one package. Watch the code below write itself and see exactly what each line does.
+          Sharp AVIF/WebP optimization, instant blur-up landscape placeholders and a ready-made React upload UI —
+          in one package. Pick a landscape or upload your own photo below and watch every layer respond live.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
