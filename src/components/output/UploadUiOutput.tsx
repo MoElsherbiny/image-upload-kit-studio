@@ -135,20 +135,19 @@ export function UploadUiOutput({ image, completed, preset, objectFit, onUploaded
           className="relative aspect-[16/9] overflow-hidden rounded-lg border border-line"
           style={{ backgroundColor: image.blurColor }}
         >
-          <div
-            className={`absolute overflow-hidden transition-all duration-300 ${
-              objectFit === 'contain' ? 'inset-x-6 inset-y-2.5 rounded-md ring-1 ring-white/15 shadow-xl' : 'inset-0'
-            }`}
-          >
-            <AnimatedImage
-              key={`${image.url}-${image.blurColor}`}
-              image={image}
-              objectFit={objectFit}
-              priority
-              showShimmer
-              fill
-            />
-          </div>
+          <AnimatedImage
+            key={`${image.url}-${image.blurColor}`}
+            image={image}
+            objectFit={objectFit}
+            className={
+              objectFit === 'contain' && image.width >= image.height * 0.95
+                ? '!h-[68%] my-auto !object-cover shadow-2xl'
+                : undefined
+            }
+            priority
+            showShimmer
+            fill
+          />
         </motion.div>
       )}
     </div>

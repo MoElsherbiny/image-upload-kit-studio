@@ -71,10 +71,10 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
   }, [image, placeholderMode, colorPlaceholder]);
 
   const isContain = objectFit === 'contain';
-  const frameInsetCls = isContain
-    ? 'inset-x-8 inset-y-3 sm:inset-x-12 sm:inset-y-4 rounded-lg ring-1 ring-white/20 shadow-2xl'
-    : 'inset-0';
-  const placeholderFitCls = isContain ? 'object-contain blur-md' : 'scale-110 object-cover blur-xl';
+  const isLandscape = image.width >= image.height * 0.95;
+  // For landscape images inside a 16:10 stage, constrain the sharp image height in contain mode
+  // so the top and bottom letterbox bars clearly expose <AnimatedImage />'s generated blur backdrop.
+  const containImgCls = isContain && isLandscape ? '!h-[68%] my-auto !object-cover shadow-2xl' : undefined;
   const variantWidthsLabel = useMemo(() => {
     if (!image.variants?.length) return null;
     const widths = [...image.variants.map((v) => `${v.width}w`), `${image.width}w`];
@@ -106,21 +106,17 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
 
       <AnimatePresence>
         {completed >= 2 && !(completed === 4 && arrived) && sources.preview && (
-          <motion.div
+          <motion.img
             key={`ph-${image.url}-${placeholderMode}-${colorPlaceholder}-${image.blurColor}`}
             {...fade}
-            className={`absolute overflow-hidden transition-all duration-300 ${frameInsetCls}`}
-          >
-            <img src={sources.preview} alt="" aria-hidden className={`h-full w-full ${placeholderFitCls}`} />
-          </motion.div>
+            src={sources.preview}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl"
+          />
         )}
         {completed >= 3 && showShimmer && !(completed === 4 && arrived) && (
-          <motion.div
-            key="sh"
-            {...fade}
-            className={`pointer-events-none absolute overflow-hidden transition-all duration-300 ${frameInsetCls}`}
-            aria-hidden
-          >
+          <motion.div key="sh" {...fade} className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
             <div className="animate-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
           </motion.div>
         )}
@@ -129,7 +125,7 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
       {completed === 4 && arrived && (
         <div
           key={`${image.url}-${replayKey}-${placeholderMode}-${colorPlaceholder}-${revealScale}-${simulateError}`}
-          className={`absolute overflow-hidden transition-all duration-300 ${frameInsetCls}`}
+          className="absolute inset-0"
         >
           <AnimatedImage
             image={simulateError ? undefined : image}
@@ -144,6 +140,7 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
             priority={priority}
             showShimmer={showShimmer}
             objectFit={objectFit}
+            className={containImgCls}
             fill
             renderError={({ retry }) => (
               <div className="absolute inset-0 flex items-center justify-center bg-black/35 p-4 backdrop-blur-[2px]">
