@@ -26,6 +26,7 @@ interface AnimatedCodeEditorProps {
 
 const FRAMEWORKS: Array<{ value: DemoFramework; label: string }> = [
   { value: 'react', label: 'React' },
+  { value: 'vue', label: 'Vue' },
   { value: 'angular', label: 'Angular' },
   { value: 'react-native', label: 'React Native' },
 ];

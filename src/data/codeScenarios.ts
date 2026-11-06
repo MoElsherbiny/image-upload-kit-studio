@@ -10,7 +10,7 @@ export type PlaceholderMode = 'auto' | 'lqip' | 'blurhash' | 'color';
 export type ColorPlaceholderMode = 'flat' | 'gradient';
 export type RevealScaleMode = 1.02 | 1;
 export type ImageFitMode = 'cover' | 'contain';
-export type DemoFramework = 'react' | 'angular' | 'react-native';
+export type DemoFramework = 'react' | 'vue' | 'angular' | 'react-native';
 export type StudioAspectRatio = '16:10' | '1:1' | '4:5' | '9:16';
 export type StudioPresetName = StandardPresetName | 'square' | 'portrait' | 'story';
 export type Step = 1 | 2 | 3 | 4;
@@ -173,6 +173,19 @@ export function buildCodeScenarios(image: UploadedImageData, opts: ScenarioOptio
         `      animationDuration={${opts.duration}}\n${scaleLine}${fitLine}${errorLines}      fill\n    />\n  );\n}`,
       ],
     },
+    vue: {
+      filename: 'Hero.vue',
+      segments: [
+        `<script setup lang="ts">\nimport { AnimatedImage } from '${PKG.name}/vue';\ndefineProps<{ photo: UploadedImageData }>();\n</script>\n\n<template>\n  <AnimatedImage\n    :image="photo"\n    alt="${alt}"\n    blur-color="${image.blurColor}"\n${aspect !== '16:10' ? `    aspect-ratio="${aspect}"\n` : ''}`,
+        useLqip
+          ? `    :blur-data-url="photo.blurDataUrl"\n`
+          : useHash
+            ? `    blur-hash="${hash}"\n`
+            : `    color-placeholder="${opts.colorPlaceholder}"\n`,
+        `    :priority="${opts.priority}"\n    :show-shimmer="${opts.showShimmer}"\n`,
+        `    :animation-duration="${opts.duration}"\n    :reveal-scale="${opts.revealScale}"\n    object-fit="${opts.objectFit}"\n    fill\n  />\n</template>`,
+      ],
+    },
     angular: {
       filename: 'hero.component.ts',
       segments: [
@@ -209,7 +222,13 @@ export function buildCodeScenarios(image: UploadedImageData, opts: ScenarioOptio
   );
 
   const routeFilename =
-    fw === 'angular' ? 'server/upload.route.ts' : fw === 'react-native' ? 'app/api/upload+api.ts' : 'app/api/upload/route.ts';
+    fw === 'vue'
+      ? 'server/api/upload.post.ts'
+      : fw === 'angular'
+        ? 'server/upload.route.ts'
+        : fw === 'react-native'
+          ? 'app/api/upload+api.ts'
+          : 'app/api/upload/route.ts';
 
   const route = assemble(
     {
@@ -240,6 +259,15 @@ export function buildCodeScenarios(image: UploadedImageData, opts: ScenarioOptio
         `      <SingleImageUpload\n        name="coverImage"\n        preset="${opts.preset}"\n        enablePaste\n        capture="environment"\n        value={photo}\n        onChange={setPhoto}\n      />\n`,
         `      <MultiImageUpload\n        mode="multiple"\n        preset="square"\n        reorderable\n        showCoverBadge\n        value={gallery}\n        onChange={setGallery}\n        onReorder={(ordered) => console.log('Cover:', ordered[0]?.url)}\n      />\n`,
         `      {photo && <AnimatedImage image={photo} priority showShimmer />}\n    </ImageUploadProvider>\n  );\n}`,
+      ],
+    },
+    vue: {
+      filename: 'ProductGallery.vue',
+      segments: [
+        `<script setup lang="ts">\nimport { ref } from 'vue';\nimport { provideImageUploadConfig, SingleImageUpload, MultiImageUpload, AnimatedImage } from '${PKG.name}/vue';\nimport '${PKG.name}/styles.css';\n\nprovideImageUploadConfig({ endpoint: '/api/upload', locale: 'en' });\nconst photo = ref(initialPhoto);\nconst gallery = ref(initialGallery);\n</script>\n`,
+        `<template>\n  <SingleImageUpload\n    v-model="photo"\n    preset="${opts.preset}"\n  />\n`,
+        `  <MultiImageUpload\n    v-model="gallery"\n    preset="square"\n    reorderable\n    show-cover-badge\n    @reorder="({ images }) => console.log('Cover:', images[0]?.url)"\n  />\n`,
+        `  <AnimatedImage v-if="photo" :image="photo" priority show-shimmer />\n</template>`,
       ],
     },
     angular: {
