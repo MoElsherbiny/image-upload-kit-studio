@@ -178,7 +178,7 @@ export function App() {
           <SectionHeading
             eyebrow="Code studio"
             title="Watch the code write itself"
-            text="Switch between React, Angular, and React Native — each step lights up the lines that matter and shows what they change on the right."
+            text="Switch between React, Vue, Angular, and React Native — each step lights up the lines that matter and shows what they change on the right."
           />
           <div className="rounded-2xl border border-line bg-surface/60 p-4 backdrop-blur">
             <SourcePicker
@@ -230,7 +230,7 @@ export function App() {
           <SectionHeading
             eyebrow="Get started"
             title="Three steps to ship it"
-            text="Works with React, Next.js, Angular, React Native / Expo, Remix, Hono, and SvelteKit."
+            text="Works with React, Next.js, Vue 3 / Nuxt 4, Angular, React Native / Expo, Remix, Hono, and SvelteKit."
           />
           <GetStarted />
         </section>

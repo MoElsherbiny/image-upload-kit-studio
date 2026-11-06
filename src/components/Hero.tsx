@@ -76,8 +76,9 @@ export function Hero({ activeImage }: HeroProps) {
         </h1>
 
         <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-          Sharp AVIF/WebP optimization, instant blur-up landscape placeholders and a ready-made React upload UI —
-          in one package. Pick a landscape or upload your own photo below and watch every layer respond live.
+          Sharp AVIF/WebP optimization, presigned direct-to-storage uploads, instant blur-up placeholders, and ready-made
+          upload UI for React, Vue, Angular, and React Native — in one package. Pick a landscape or upload your own photo
+          below and watch every layer respond live.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

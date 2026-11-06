@@ -13,7 +13,7 @@
 **image-upload-kit-studio** is the official interactive developer playground for [`img-upload-kit`](https://github.com/MoElsherbiny/image-upload-kit).
 
 Instead of static documentation, it lets developers:
-1. **Watch the Code Write Itself**: Synchronized Shiki IDE typing code milestone-by-milestone (`<AnimatedImage />`, server upload route, and React dropzone field) while the live preview mutates in real time at 60 FPS.
+1. **Watch the Code Write Itself**: Synchronized Shiki IDE typing code milestone-by-milestone (`<AnimatedImage />`, server upload route, and multi-platform upload UI across **React**, **Vue 3 / Nuxt 4**, **Angular**, and **React Native**) while the live preview mutates in real time at 60 FPS.
 2. **Real Landscape Placeholders & 4-Layer Lab**: Built-in high-resolution landscape photographs pre-processed through `img-upload-kit/server`, showing side-by-side comparisons of **4-Edge Ambient Color**, **Client BlurHash**, **WebP LQIP Data URL**, and the final **Sharp AVIF/WebP asset**.
 3. **Live Sharp Upload Sandbox**: Drop any photo (landscape, portrait, square, or logo) to run real Sharp size-guarding and watch the entire studio — Hero metrics, ambient glow, Shiki code tokens, and 4-layer Placeholder Lab — reflect your image immediately.
 

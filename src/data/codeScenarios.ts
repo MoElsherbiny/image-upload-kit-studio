@@ -245,7 +245,7 @@ export function buildCodeScenarios(image: UploadedImageData, opts: ScenarioOptio
     },
     [
       `import { defineUploadPresets, STANDARD_PRESETS } from '${PKG.name}';\nimport { createImageUploader, createUploadHttpHandler } from '${PKG.name}/server';\nimport { createLocalFsStorageAdapter } from '${PKG.name}/storage';\n\nconst storage = createLocalFsStorageAdapter({\n  rootDir: './public/uploads',\n  baseUrl: '/uploads',\n});\n`,
-      `\nconst uploader = createImageUploader({\n  storage,\n  defaultBucket: 'media',\n  presets: defineUploadPresets({\n    ...STANDARD_PRESETS, // includes square (1:1), portrait (4:5), story (9:16)\n    hero: { ...STANDARD_PRESETS.hero, variantWidths: [640, 1024, 1920] },\n  }),\n});\n`,
+      `\nconst uploader = createImageUploader({\n  storage,\n  defaultBucket: 'media',\n  deduplicateByHash: true, // SHA-256 content-hash deduplication\n  presets: defineUploadPresets({\n    ...STANDARD_PRESETS, // includes square (1:1), portrait (4:5), story (9:16)\n    hero: { ...STANDARD_PRESETS.hero, variantWidths: [640, 1024, 1920] },\n  }),\n});\n`,
       `\n// Magic-byte sniff → EXIF rotate → smart attention crop → AVIF/WebP size-guard → LQIP + variants\n`,
       `export const { POST, DELETE } = createUploadHttpHandler({\n  uploader,\n  authorize: ({ action, request }) => Boolean(request.headers.get('cookie')),\n  allowClientOverrides: { folder: true, quality: true, format: true, dimensions: true, aspectRatio: true },\n});`,
     ],

@@ -75,6 +75,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       dimensions: true,
       format: true,
       quality: true,
+      aspectRatio: true,
     },
   });
 

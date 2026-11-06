@@ -33,6 +33,10 @@ export default defineConfig({
             replacement: path.resolve(kitRoot, 'src/react/headless/index.ts'),
           },
           {
+            find: /^img-upload-kit\/vue$/,
+            replacement: path.resolve(kitRoot, 'src/vue/index.ts'),
+          },
+          {
             find: /^img-upload-kit\/angular$/,
             replacement: path.resolve(kitRoot, 'src/angular/index.ts'),
           },
@@ -57,6 +61,7 @@ export default defineConfig({
       'img-upload-kit/client',
       'img-upload-kit/react',
       'img-upload-kit/headless',
+      'img-upload-kit/vue',
       'img-upload-kit/angular',
       'img-upload-kit/react-native',
       'img-upload-kit/blur',

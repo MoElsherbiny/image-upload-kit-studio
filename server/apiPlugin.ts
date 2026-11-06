@@ -149,6 +149,7 @@ export function imageUploadKitServerPlugin(): Plugin {
       dimensions: true,
       format: true,
       quality: true,
+      aspectRatio: true,
     },
   });
 
