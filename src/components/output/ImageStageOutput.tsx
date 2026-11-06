@@ -52,6 +52,7 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
   // Simulate the full-size image arriving over the network once step 4 is written.
   useEffect(() => {
     if (completed < 4) return setArrived(false);
+    if (simulateError) return setArrived(true);
     if (networkDelay === 'hold') return setArrived(false);
     if (networkDelay === 0) return setArrived(true);
     setArrived(false);
@@ -69,12 +70,27 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
     return { lqip, hash, preview };
   }, [image, placeholderMode, colorPlaceholder]);
 
-  const placeholderFitCls = objectFit === 'contain' ? 'object-contain blur-xl' : 'scale-110 object-cover blur-xl';
+  const isContain = objectFit === 'contain';
+  const frameInsetCls = isContain
+    ? 'inset-x-8 inset-y-3 sm:inset-x-12 sm:inset-y-4 rounded-lg ring-1 ring-white/20 shadow-2xl'
+    : 'inset-0';
+  const placeholderFitCls = isContain ? 'object-contain blur-md' : 'scale-110 object-cover blur-xl';
   const variantWidthsLabel = useMemo(() => {
     if (!image.variants?.length) return null;
     const widths = [...image.variants.map((v) => `${v.width}w`), `${image.width}w`];
     return widths.join(' · ');
   }, [image.variants, image.width]);
+
+  const placeholderTag =
+    placeholderMode === 'color'
+      ? `color (${colorPlaceholder})`
+      : placeholderMode === 'auto'
+        ? sources.lqip
+          ? 'auto → LQIP'
+          : sources.hash
+            ? 'auto → BlurHash'
+            : `auto → color (${colorPlaceholder})`
+        : placeholderMode;
 
   return (
     <div
@@ -90,17 +106,21 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
 
       <AnimatePresence>
         {completed >= 2 && !(completed === 4 && arrived) && sources.preview && (
-          <motion.img
+          <motion.div
             key={`ph-${image.url}-${placeholderMode}-${colorPlaceholder}-${image.blurColor}`}
             {...fade}
-            src={sources.preview}
-            alt=""
-            aria-hidden
-            className={`absolute inset-0 h-full w-full ${placeholderFitCls}`}
-          />
+            className={`absolute overflow-hidden transition-all duration-300 ${frameInsetCls}`}
+          >
+            <img src={sources.preview} alt="" aria-hidden className={`h-full w-full ${placeholderFitCls}`} />
+          </motion.div>
         )}
         {completed >= 3 && showShimmer && !(completed === 4 && arrived) && (
-          <motion.div key="sh" {...fade} className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+          <motion.div
+            key="sh"
+            {...fade}
+            className={`pointer-events-none absolute overflow-hidden transition-all duration-300 ${frameInsetCls}`}
+            aria-hidden
+          >
             <div className="animate-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
           </motion.div>
         )}
@@ -108,8 +128,8 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
 
       {completed === 4 && arrived && (
         <div
-          key={`${image.url}-${replayKey}-${placeholderMode}-${colorPlaceholder}-${objectFit}-${revealScale}-${simulateError}`}
-          className="absolute inset-0"
+          key={`${image.url}-${replayKey}-${placeholderMode}-${colorPlaceholder}-${revealScale}-${simulateError}`}
+          className={`absolute overflow-hidden transition-all duration-300 ${frameInsetCls}`}
         >
           <AnimatedImage
             image={simulateError ? undefined : image}
@@ -132,7 +152,7 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     data-state=&quot;error&quot; · Placeholder retained
                   </div>
-                  <p className=" leading-relaxed text-slate-300">
+                  <p className="leading-relaxed text-slate-300">
                     Instead of a broken browser icon, the blurred placeholder stays mounted while{' '}
                     <code className="text-sky-300">renderError</code> offers recovery:
                   </p>
@@ -156,24 +176,33 @@ export function ImageStageOutput(props: ImageStageOutputProps) {
               </div>
             )}
           />
+        </div>
+      )}
 
-          <div className="pointer-events-none absolute inset-x-2.5 top-2.5 flex flex-wrap items-center justify-between gap-1.5">
-            {priority && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[10px] text-emerald-300 backdrop-blur">
+      {completed >= 2 && (
+        <div className="pointer-events-none absolute inset-x-2.5 top-2.5 z-10 flex flex-wrap items-center justify-between gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {completed >= 3 && priority && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 font-mono text-[10px] text-emerald-300 backdrop-blur">
                 <Zap className="h-2.5 w-2.5" /> priority · eager
               </span>
             )}
-            {variantWidthsLabel && !simulateError && (
-              <span className="ms-auto inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[10px] text-sky-200 backdrop-blur">
-                <Layers className="h-2.5 w-2.5" /> srcSet: {variantWidthsLabel}
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 font-mono text-[10px] text-white/90 backdrop-blur">
+              fit: {objectFit} · {placeholderTag}
+            </span>
           </div>
-
-          <span className="pointer-events-none absolute bottom-2.5 end-2.5 rounded-md bg-black/55 px-2 py-0.5 font-mono text-[10px] text-white/90 backdrop-blur">
-            {image.width}×{image.height} · {image.format.toUpperCase()} · scale({revealScale}→1)
-          </span>
+          {completed === 4 && variantWidthsLabel && !simulateError && (
+            <span className="ms-auto inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 font-mono text-[10px] text-sky-200 backdrop-blur">
+              <Layers className="h-2.5 w-2.5" /> srcSet: {variantWidthsLabel}
+            </span>
+          )}
         </div>
+      )}
+
+      {completed === 4 && arrived && (
+        <span className="pointer-events-none absolute bottom-2.5 end-2.5 z-10 rounded-md bg-black/65 px-2 py-0.5 font-mono text-[10px] text-white/90 backdrop-blur">
+          {image.width}×{image.height} · {image.format.toUpperCase()} · scale({revealScale}→1) · {duration}ms
+        </span>
       )}
 
       {completed === 4 && !arrived && (

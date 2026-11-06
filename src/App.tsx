@@ -194,7 +194,11 @@ export function App() {
               completed={progress.completed}
               image={image}
               settings={settings}
-              onChangeSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+              onChangeSettings={(patch) => {
+                setSettings((s) => ({ ...s, ...patch }));
+                setJumpRequest({ step: 4, nonce: Date.now() });
+              }}
+              onEnsureStep4={() => setJumpRequest({ step: 4, nonce: Date.now() })}
               onUploaded={handleUploaded}
             />
           </div>

@@ -31,6 +31,7 @@ interface LiveOutputStageProps {
   image: UploadedImageData;
   settings: PlaygroundSettings;
   onChangeSettings: (patch: Partial<PlaygroundSettings>) => void;
+  onEnsureStep4?: () => void;
   onUploaded: (image: UploadedImageData, meta?: { label?: string; preset?: StandardPresetName }) => void;
 }
 
@@ -71,6 +72,7 @@ export function LiveOutputStage({
   image,
   settings,
   onChangeSettings,
+  onEnsureStep4,
   onUploaded,
 }: LiveOutputStageProps) {
   const [activeDelay, setActiveDelay] = useState<NetworkDelay>(800);
@@ -86,6 +88,12 @@ export function LiveOutputStage({
     }
   }, [image.url]);
 
+  const triggerReplay = () => {
+    onEnsureStep4?.();
+    setActiveDelay((cur) => (cur === 'hold' ? 800 : cur));
+    setReplayKey((k) => k + 1);
+  };
+
   const reflects = completed > 0 ? scenario.steps[completed - 1] : null;
   const isImage = scenario.id === 'animated-image';
 
@@ -99,13 +107,10 @@ export function LiveOutputStage({
         <h3 className="flex items-center gap-2 text-sm font-semibold text-fg">
           <Eye className="h-4 w-4 text-accent" /> Live output
         </h3>
-        {isImage && completed === 4 && (
+        {isImage && (
           <button
             type="button"
-            onClick={() => {
-              if (activeDelay === 'hold') setActiveDelay(800);
-              setReplayKey((k) => k + 1);
-            }}
+            onClick={triggerReplay}
             className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-fg-2 transition hover:border-accent hover:text-accent"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Replay blur-up
@@ -171,12 +176,23 @@ export function LiveOutputStage({
         </p>
         {isImage ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Segmented label="Placeholder" value={settings.placeholderMode} options={MODES} onChange={(v) => onChangeSettings({ placeholderMode: v })} />
+            <Segmented
+              label="Placeholder"
+              value={settings.placeholderMode}
+              options={MODES}
+              onChange={(v) => {
+                onChangeSettings({ placeholderMode: v, simulateError: false });
+                if (activeDelay === 0) setActiveDelay(800);
+                setReplayKey((k) => k + 1);
+              }}
+            />
             <Segmented
               label="Network"
               value={activeDelay}
               options={DELAYS}
               onChange={(v) => {
+                onEnsureStep4?.();
+                if (settings.simulateError) onChangeSettings({ simulateError: false });
                 setActiveDelay(v);
                 setReplayKey((k) => k + 1);
               }}
@@ -186,18 +202,43 @@ export function LiveOutputStage({
               value={settings.revealScale}
               options={SCALES}
               onChange={(v) => {
-                onChangeSettings({ revealScale: v });
+                onChangeSettings({ revealScale: v, simulateError: false });
+                if (activeDelay === 'hold') setActiveDelay(800);
                 setReplayKey((k) => k + 1);
               }}
             />
-            <Segmented label="Color fill" value={settings.colorPlaceholder} options={COLOR_PH_MODES} onChange={(v) => onChangeSettings({ colorPlaceholder: v })} />
-            <Segmented label="Fit" value={settings.objectFit} options={FITS} onChange={(v) => onChangeSettings({ objectFit: v })} />
+            <Segmented
+              label="Color fill"
+              value={settings.colorPlaceholder}
+              options={COLOR_PH_MODES}
+              onChange={(v) => {
+                onChangeSettings({ colorPlaceholder: v, placeholderMode: 'color', simulateError: false });
+                if (activeDelay === 0) setActiveDelay(800);
+                setReplayKey((k) => k + 1);
+              }}
+            />
+            <Segmented
+              label="Fit"
+              value={settings.objectFit}
+              options={FITS}
+              onChange={(v) => {
+                onChangeSettings({ objectFit: v });
+                if (activeDelay === 'hold') setActiveDelay(800);
+              }}
+            />
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
               <label className="flex cursor-pointer items-center gap-1.5">
                 <input
                   type="checkbox"
                   checked={settings.showShimmer}
-                  onChange={(e) => onChangeSettings({ showShimmer: e.target.checked })}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    onChangeSettings({ showShimmer: checked });
+                    if (checked) {
+                      if (activeDelay === 0) setActiveDelay(800);
+                      setReplayKey((k) => k + 1);
+                    }
+                  }}
                   className="h-3.5 w-3.5 cursor-pointer accent-[var(--bws-accent)]"
                 />
                 <span className="font-mono text-fg-2">Shimmer</span>
@@ -217,7 +258,10 @@ export function LiveOutputStage({
                 <input
                   type="checkbox"
                   checked={settings.simulateError}
-                  onChange={(e) => onChangeSettings({ simulateError: e.target.checked })}
+                  onChange={(e) => {
+                    onChangeSettings({ simulateError: e.target.checked });
+                    if (activeDelay === 'hold') setActiveDelay(800);
+                  }}
                   className="h-3.5 w-3.5 cursor-pointer accent-amber-400"
                 />
                 <span className="inline-flex items-center gap-1 font-mono text-amber-300">
@@ -234,6 +278,9 @@ export function LiveOutputStage({
                 step={100}
                 value={settings.duration}
                 onChange={(e) => onChangeSettings({ duration: Number(e.target.value) })}
+                onMouseUp={triggerReplay}
+                onTouchEnd={triggerReplay}
+                onKeyUp={triggerReplay}
                 className="h-1.5 flex-1 cursor-pointer accent-[var(--bws-accent)]"
                 aria-label="Crossfade duration"
               />
@@ -248,12 +295,7 @@ export function LiveOutputStage({
   );
 }
 
-function Segmented<T extends string | number>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
+function Segmented<T extends string | number>(props: {
   label: string;
   value: T;
   options: Array<{ value: T; label: string }>;
@@ -261,17 +303,17 @@ function Segmented<T extends string | number>({
 }) {
   return (
     <div className="flex items-center gap-3 text-xs text-muted">
-      <span className="w-16 shrink-0">{label}</span>
-      <div className="no-scrollbar flex flex-1 overflow-x-auto rounded-lg bg-surface-2 p-0.5" role="radiogroup" aria-label={label}>
-        {options.map((o) => (
+      <span className="w-16 shrink-0">{props.label}</span>
+      <div className="no-scrollbar flex flex-1 overflow-x-auto rounded-lg bg-surface-2 p-0.5" role="radiogroup" aria-label={props.label}>
+        {props.options.map((o) => (
           <button
             key={String(o.value)}
             type="button"
             role="radio"
-            aria-checked={value === o.value}
-            onClick={() => onChange(o.value)}
+            aria-checked={props.value === o.value}
+            onClick={() => props.onChange(o.value)}
             className={`flex-1 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[11px] transition ${
-              value === o.value ? 'bg-surface text-fg shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'
+              props.value === o.value ? 'bg-surface text-fg shadow-sm ring-1 ring-line' : 'text-muted hover:text-fg'
             }`}
           >
             {o.label}

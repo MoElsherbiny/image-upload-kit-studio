@@ -47,11 +47,16 @@ export function useTypewriter(scenario: CodeScenario, restartKey: number) {
     const boundary = scenario.stepEnds.find((end) => end > typed && end <= raw);
     const next = boundary ?? raw;
     const atBoundary = typed > 0 && scenario.stepEnds.includes(typed);
-    const timer = window.setTimeout(() => setTyped(next), atBoundary ? STEP_PAUSE_MS : TICK_MS);
+    const timer = window.setTimeout(
+      () => setTyped(next >= total ? Number.MAX_SAFE_INTEGER : next),
+      atBoundary ? STEP_PAUSE_MS : TICK_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [isPlaying, typed, total, done, speed, scenario.stepEnds]);
 
-  const clamped = Math.min(typed, total);
+  const pinnedOffset =
+    pinnedStep !== null ? (pinnedStep === 4 ? total : scenario.stepEnds[pinnedStep - 1]) : null;
+  const clamped = pinnedOffset ?? Math.min(typed, total);
   const typingStep = stepForLength(scenario, clamped);
   /** Step whose code lines are emphasised in the editor. */
   const step: Step = pinnedStep ?? (done ? 4 : typingStep);
