@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
@@ -7,33 +8,36 @@ import { imageUploadKitServerPlugin } from './server/apiPlugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const kitRoot = path.resolve(__dirname, '../image-upload-kit');
+const hasLocalKitSource = fs.existsSync(path.resolve(kitRoot, 'src/index.ts'));
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), imageUploadKitServerPlugin()],
   resolve: {
     dedupe: ['react', 'react-dom'],
-    alias: [
-      {
-        find: /^img-upload-kit\/styles\.css$/,
-        replacement: path.resolve(kitRoot, 'dist/styles.css'),
-      },
-      {
-        find: /^img-upload-kit\/react$/,
-        replacement: path.resolve(kitRoot, 'src/react/index.ts'),
-      },
-      {
-        find: /^img-upload-kit\/headless$/,
-        replacement: path.resolve(kitRoot, 'src/react/headless/index.ts'),
-      },
-      {
-        find: /^img-upload-kit\/blur$/,
-        replacement: path.resolve(kitRoot, 'src/blur/index.ts'),
-      },
-      {
-        find: /^img-upload-kit$/,
-        replacement: path.resolve(kitRoot, 'src/index.ts'),
-      },
-    ],
+    alias: hasLocalKitSource
+      ? [
+          {
+            find: /^img-upload-kit\/styles\.css$/,
+            replacement: path.resolve(kitRoot, 'dist/styles.css'),
+          },
+          {
+            find: /^img-upload-kit\/react$/,
+            replacement: path.resolve(kitRoot, 'src/react/index.ts'),
+          },
+          {
+            find: /^img-upload-kit\/headless$/,
+            replacement: path.resolve(kitRoot, 'src/react/headless/index.ts'),
+          },
+          {
+            find: /^img-upload-kit\/blur$/,
+            replacement: path.resolve(kitRoot, 'src/blur/index.ts'),
+          },
+          {
+            find: /^img-upload-kit$/,
+            replacement: path.resolve(kitRoot, 'src/index.ts'),
+          },
+        ]
+      : [],
   },
   optimizeDeps: {
     exclude: ['img-upload-kit', 'img-upload-kit/react', 'img-upload-kit/headless', 'img-upload-kit/blur'],
@@ -42,7 +46,7 @@ export default defineConfig({
     port: 5173,
     host: true,
     fs: {
-      allow: [__dirname, kitRoot],
+      allow: hasLocalKitSource ? [__dirname, kitRoot] : [__dirname],
     },
   },
   build: {
