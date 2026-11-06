@@ -1,12 +1,10 @@
-import { Github, Languages, Moon, Package, Sun } from 'lucide-react';
+import { Github, Moon, Package, Sun } from 'lucide-react';
 import { PKG } from '../brand';
 import { BrandLogo } from './BrandLogo';
 
 interface NavbarProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
-  locale: 'en' | 'ar';
-  onToggleLocale: () => void;
 }
 
 const NAV_LINKS = [
@@ -18,7 +16,7 @@ const NAV_LINKS = [
 const iconBtn =
   'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-muted transition hover:border-line-strong hover:text-fg';
 
-export function Navbar({ theme, onToggleTheme, locale, onToggleLocale }: NavbarProps) {
+export function Navbar({ theme, onToggleTheme }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/75 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -41,16 +39,6 @@ export function Navbar({ theme, onToggleTheme, locale, onToggleLocale }: NavbarP
         </nav>
 
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onToggleLocale}
-            className={`${iconBtn} w-auto gap-1.5 px-2.5 font-mono text-xs`}
-            aria-label="Switch upload UI language"
-            title="Switch upload UI language (English / العربية)"
-          >
-            <Languages className="h-4 w-4" />
-            {locale === 'en' ? 'EN' : 'AR'}
-          </button>
           <button
             type="button"
             onClick={onToggleTheme}

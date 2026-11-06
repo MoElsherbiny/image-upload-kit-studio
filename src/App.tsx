@@ -27,7 +27,6 @@ function recommendedFitFor(data: UploadedImageData, preset?: StandardPresetName)
 
 export function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [locale, setLocale] = useState<'en' | 'ar'>('en');
   const [entries, setEntries] = useState<StudioImageEntry[]>(LANDSCAPE_SAMPLES);
   const [activeId, setActiveId] = useState<string>(DEFAULT_LANDSCAPE_ENTRY.id);
   const [scenarioId, setScenarioId] = useState<ScenarioId>('animated-image');
@@ -139,7 +138,7 @@ export function App() {
   );
 
   return (
-    <ImageUploadProvider endpoint="/api/upload" uploader={demoUploader} locale={locale} requireAltText={false}>
+    <ImageUploadProvider endpoint="/api/upload" uploader={demoUploader} locale="en" requireAltText={false}>
       <div className="glow-backdrop" aria-hidden>
         <div className="glow-grid" />
         <div className="glow-grid-lit" />
@@ -156,8 +155,6 @@ export function App() {
       <Navbar
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-        locale={locale}
-        onToggleLocale={() => setLocale((l) => (l === 'en' ? 'ar' : 'en'))}
       />
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6">
