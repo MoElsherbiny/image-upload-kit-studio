@@ -31,6 +31,11 @@ export const LANDSCAPE_SAMPLES: StudioImageEntry[] = [
       "bucket": "landscapes",
       "preset": "cover",
       "folder": "preset-cover",
+      "variants": [
+        { "width": 640, "height": 427, "url": "/samples/landscapes/preset-cover/glacial-mountain-peaks.avif?w=640", "size": 98420 },
+        { "width": 1024, "height": 683, "url": "/samples/landscapes/preset-cover/glacial-mountain-peaks.avif?w=1024", "size": 218640 }
+      ],
+      "srcSet": "/samples/landscapes/preset-cover/glacial-mountain-peaks.avif?w=640 640w, /samples/landscapes/preset-cover/glacial-mountain-peaks.avif?w=1024 1024w, /samples/landscapes/preset-cover/glacial-mountain-peaks.avif 1620w",
       "uploadedAt": "2026-10-31T16:13:10.705Z"
     }
   },
@@ -55,6 +60,12 @@ export const LANDSCAPE_SAMPLES: StudioImageEntry[] = [
       "bucket": "landscapes",
       "preset": "hero",
       "folder": "preset-hero",
+      "variants": [
+        { "width": 640, "height": 427, "url": "/samples/landscapes/preset-hero/sahara-golden-dunes.avif?w=640", "size": 68120 },
+        { "width": 1024, "height": 683, "url": "/samples/landscapes/preset-hero/sahara-golden-dunes.avif?w=1024", "size": 146800 },
+        { "width": 1920, "height": 1280, "url": "/samples/landscapes/preset-hero/sahara-golden-dunes.avif?w=1920", "size": 362100 }
+      ],
+      "srcSet": "/samples/landscapes/preset-hero/sahara-golden-dunes.avif?w=640 640w, /samples/landscapes/preset-hero/sahara-golden-dunes.avif?w=1024 1024w, /samples/landscapes/preset-hero/sahara-golden-dunes.avif?w=1920 1920w, /samples/landscapes/preset-hero/sahara-golden-dunes.avif 2160w",
       "uploadedAt": "2026-10-31T16:13:12.960Z"
     }
   },
@@ -79,6 +90,11 @@ export const LANDSCAPE_SAMPLES: StudioImageEntry[] = [
       "bucket": "landscapes",
       "preset": "card",
       "folder": "preset-card",
+      "variants": [
+        { "width": 480, "height": 319, "url": "/samples/landscapes/preset-card/pacific-sunset-shore.avif?w=480", "size": 34200 },
+        { "width": 800, "height": 532, "url": "/samples/landscapes/preset-card/pacific-sunset-shore.avif?w=800", "size": 72400 }
+      ],
+      "srcSet": "/samples/landscapes/preset-card/pacific-sunset-shore.avif?w=480 480w, /samples/landscapes/preset-card/pacific-sunset-shore.avif?w=800 800w, /samples/landscapes/preset-card/pacific-sunset-shore.avif 1200w",
       "uploadedAt": "2026-10-31T16:13:14.172Z"
     }
   },
@@ -103,6 +119,11 @@ export const LANDSCAPE_SAMPLES: StudioImageEntry[] = [
       "bucket": "landscapes",
       "preset": "cover",
       "folder": "preset-cover",
+      "variants": [
+        { "width": 640, "height": 427, "url": "/samples/landscapes/preset-cover/yosemite-dawn-valley.avif?w=640", "size": 74900 },
+        { "width": 1024, "height": 683, "url": "/samples/landscapes/preset-cover/yosemite-dawn-valley.avif?w=1024", "size": 169200 }
+      ],
+      "srcSet": "/samples/landscapes/preset-cover/yosemite-dawn-valley.avif?w=640 640w, /samples/landscapes/preset-cover/yosemite-dawn-valley.avif?w=1024 1024w, /samples/landscapes/preset-cover/yosemite-dawn-valley.avif 1619w",
       "uploadedAt": "2026-10-31T16:13:17.289Z"
     }
   }

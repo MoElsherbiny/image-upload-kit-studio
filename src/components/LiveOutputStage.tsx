@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { StandardPresetName, UploadedImageData } from 'img-upload-kit';
-import { Eye, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, Eye, RefreshCw, SlidersHorizontal, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { CodeScenario, ImageFitMode, PlaceholderMode } from '../data/codeScenarios';
+import type {
+  CodeScenario,
+  ColorPlaceholderMode,
+  ImageFitMode,
+  PlaceholderMode,
+  RevealScaleMode,
+} from '../data/codeScenarios';
 import { ImageStageOutput, type NetworkDelay } from './output/ImageStageOutput';
 import { PipelineOutput } from './output/PipelineOutput';
 import { UploadUiOutput } from './output/UploadUiOutput';
@@ -12,6 +18,10 @@ export interface PlaygroundSettings {
   showShimmer: boolean;
   placeholderMode: PlaceholderMode;
   objectFit: ImageFitMode;
+  revealScale: RevealScaleMode;
+  colorPlaceholder: ColorPlaceholderMode;
+  priority: boolean;
+  simulateError: boolean;
   preset: StandardPresetName;
 }
 
@@ -43,6 +53,16 @@ const FITS: Array<{ value: ImageFitMode; label: string }> = [
   { value: 'contain', label: 'Contain' },
 ];
 
+const SCALES: Array<{ value: RevealScaleMode; label: string }> = [
+  { value: 1.02, label: '1.02× settle' },
+  { value: 1, label: '1.0× fade' },
+];
+
+const COLOR_PH_MODES: Array<{ value: ColorPlaceholderMode; label: string }> = [
+  { value: 'flat', label: 'Flat' },
+  { value: 'gradient', label: 'SVG' },
+];
+
 const PRESETS: StandardPresetName[] = ['hero', 'cover', 'card', 'avatar', 'thumbnail', 'logo', 'original'];
 
 export function LiveOutputStage({
@@ -53,11 +73,9 @@ export function LiveOutputStage({
   onChangeSettings,
   onUploaded,
 }: LiveOutputStageProps) {
-  const [networkDelay, setNetworkDelay] = useState<NetworkDelay>(400 as NetworkDelay);
   const [activeDelay, setActiveDelay] = useState<NetworkDelay>(800);
   const [replayKey, setReplayKey] = useState(0);
   const prevUrlRef = useRef(image.url);
-  void networkDelay;
 
   // Ensure a newly uploaded or selected image never stays frozen on 'hold'.
   useEffect(() => {
@@ -72,7 +90,11 @@ export function LiveOutputStage({
   const isImage = scenario.id === 'animated-image';
 
   return (
-    <section data-glow-card className="flex h-full flex-col rounded-2xl border border-line bg-surface shadow-xl shadow-black/10" aria-label="Live output">
+    <section
+      data-glow-card
+      className="flex h-full flex-col rounded-2xl border border-line bg-surface shadow-xl shadow-black/10"
+      aria-label="Live output"
+    >
       <header className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-fg">
           <Eye className="h-4 w-4 text-accent" /> Live output
@@ -100,6 +122,11 @@ export function LiveOutputStage({
             showShimmer={settings.showShimmer}
             placeholderMode={settings.placeholderMode}
             objectFit={settings.objectFit}
+            revealScale={settings.revealScale}
+            colorPlaceholder={settings.colorPlaceholder}
+            priority={settings.priority}
+            simulateError={settings.simulateError}
+            onClearErrorSimulation={() => onChangeSettings({ simulateError: false })}
             networkDelay={activeDelay}
             replayKey={replayKey}
           />
@@ -118,7 +145,7 @@ export function LiveOutputStage({
         <div className="mt-4 min-h-[3.5rem] rounded-xl bg-surface-2 px-4 py-3" aria-live="polite">
           <AnimatePresence mode="wait">
             <motion.p
-              key={`${scenario.id}-${completed}-${image.url}`}
+              key={`${scenario.id}-${completed}-${image.url}-${settings.simulateError}`}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
@@ -144,12 +171,7 @@ export function LiveOutputStage({
         </p>
         {isImage ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Segmented
-              label="Placeholder"
-              value={settings.placeholderMode}
-              options={MODES}
-              onChange={(v) => onChangeSettings({ placeholderMode: v })}
-            />
+            <Segmented label="Placeholder" value={settings.placeholderMode} options={MODES} onChange={(v) => onChangeSettings({ placeholderMode: v })} />
             <Segmented
               label="Network"
               value={activeDelay}
@@ -160,23 +182,51 @@ export function LiveOutputStage({
               }}
             />
             <Segmented
-              label="Fit"
-              value={settings.objectFit}
-              options={FITS}
-              onChange={(v) => onChangeSettings({ objectFit: v })}
+              label="Reveal"
+              value={settings.revealScale}
+              options={SCALES}
+              onChange={(v) => {
+                onChangeSettings({ revealScale: v });
+                setReplayKey((k) => k + 1);
+              }}
             />
-            <label className="flex cursor-pointer items-center gap-3 text-xs text-muted">
-              <span className="w-16 shrink-0">Shimmer</span>
-              <input
-                type="checkbox"
-                checked={settings.showShimmer}
-                onChange={(e) => onChangeSettings({ showShimmer: e.target.checked })}
-                className="h-4 w-4 cursor-pointer accent-[var(--bws-accent)]"
-              />
-              <span className="font-mono text-fg-2">{settings.showShimmer ? 'on' : 'off'}</span>
-            </label>
+            <Segmented label="Color fill" value={settings.colorPlaceholder} options={COLOR_PH_MODES} onChange={(v) => onChangeSettings({ colorPlaceholder: v })} />
+            <Segmented label="Fit" value={settings.objectFit} options={FITS} onChange={(v) => onChangeSettings({ objectFit: v })} />
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+              <label className="flex cursor-pointer items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={settings.showShimmer}
+                  onChange={(e) => onChangeSettings({ showShimmer: e.target.checked })}
+                  className="h-3.5 w-3.5 cursor-pointer accent-[var(--bws-accent)]"
+                />
+                <span className="font-mono text-fg-2">Shimmer</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={settings.priority}
+                  onChange={(e) => onChangeSettings({ priority: e.target.checked })}
+                  className="h-3.5 w-3.5 cursor-pointer accent-[var(--bws-accent)]"
+                />
+                <span className="inline-flex items-center gap-1 font-mono text-fg-2">
+                  <Zap className="h-3 w-3 text-emerald-400" /> priority
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={settings.simulateError}
+                  onChange={(e) => onChangeSettings({ simulateError: e.target.checked })}
+                  className="h-3.5 w-3.5 cursor-pointer accent-amber-400"
+                />
+                <span className="inline-flex items-center gap-1 font-mono text-amber-300">
+                  <AlertTriangle className="h-3 w-3" /> Broken src
+                </span>
+              </label>
+            </div>
             <label className="flex items-center gap-3 text-xs text-muted sm:col-span-2">
-              <span className="w-16 shrink-0">Fade</span>
+              <span className="w-16 shrink-0">Duration</span>
               <input
                 type="range"
                 min={200}
@@ -191,12 +241,7 @@ export function LiveOutputStage({
             </label>
           </div>
         ) : (
-          <Segmented
-            label="Preset"
-            value={settings.preset}
-            options={PRESETS.map((p) => ({ value: p, label: p }))}
-            onChange={(v) => onChangeSettings({ preset: v })}
-          />
+          <Segmented label="Preset" value={settings.preset} options={PRESETS.map((p) => ({ value: p, label: p }))} onChange={(v) => onChangeSettings({ preset: v })} />
         )}
       </footer>
     </section>

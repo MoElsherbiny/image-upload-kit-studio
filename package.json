@@ -1,7 +1,7 @@
 {
   "name": "image-upload-kit-studio",
   "private": true,
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Interactive code-to-UI studio & Sharp optimization playground for img-upload-kit — built by buildwithsherbo.",
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3",
-    "img-upload-kit": "^1.1.1",
+    "img-upload-kit": "file:../image-upload-kit",
     "lucide-react": "^0.577.0",
     "motion": "^12.6.0",
     "react": "^19.1.0",

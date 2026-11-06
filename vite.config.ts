@@ -5,6 +5,9 @@ import { imageUploadKitServerPlugin } from './server/apiPlugin';
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), imageUploadKitServerPlugin()],
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   server: {
     port: 5173,
     host: true,
@@ -13,9 +16,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('/image-upload-kit/dist/') || id.includes('/img-upload-kit/')) return 'kit';
           if (!id.includes('node_modules')) return undefined;
           if (id.includes('/motion/') || id.includes('/framer-motion/')) return 'motion';
-          if (id.includes('/img-upload-kit/') || id.includes('/lucide-react/') || id.includes('/blurhash/')) return 'kit';
+          if (id.includes('/lucide-react/') || id.includes('/blurhash/')) return 'kit';
           if (id.includes('/shiki/') || id.includes('/@shikijs/')) return 'shiki';
           return 'vendor';
         },

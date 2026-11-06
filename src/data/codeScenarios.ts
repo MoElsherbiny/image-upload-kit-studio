@@ -2,6 +2,8 @@ import type { UploadedImageData } from 'img-upload-kit';
 import { PKG } from '../brand';
 
 export type PlaceholderMode = 'auto' | 'lqip' | 'blurhash' | 'color';
+export type ColorPlaceholderMode = 'flat' | 'gradient';
+export type RevealScaleMode = 1.02 | 1;
 export type ImageFitMode = 'cover' | 'contain';
 export type Step = 1 | 2 | 3 | 4;
 export type ScenarioId = 'animated-image' | 'upload-route' | 'upload-ui';
@@ -32,6 +34,10 @@ export interface ScenarioOptions {
   showShimmer: boolean;
   placeholderMode: PlaceholderMode;
   objectFit: ImageFitMode;
+  revealScale: RevealScaleMode;
+  colorPlaceholder: ColorPlaceholderMode;
+  priority: boolean;
+  simulateError: boolean;
 }
 
 type Segments = [string, string, string, string];
@@ -80,11 +86,21 @@ export function buildCodeScenarios(image: UploadedImageData, opts: ScenarioOptio
   const useLqip = Boolean(image.blurDataUrl) && (opts.placeholderMode === 'auto' || opts.placeholderMode === 'lqip');
   const useHash = Boolean(hash) && (opts.placeholderMode === 'auto' || opts.placeholderMode === 'blurhash');
   const fitLine = opts.objectFit === 'contain' ? '      objectFit="contain"\n' : '';
+  const scaleLine = opts.revealScale !== 1.02 ? `      revealScale={${opts.revealScale}}\n` : '      revealScale={1.02} // subtle settle zoom\n';
+  const colorPhLine =
+    opts.colorPlaceholder === 'gradient' ? '      colorPlaceholder="gradient"\n' : '';
+  const priorityLine = opts.priority ? '      priority\n' : '';
+  const errorLines = opts.simulateError
+    ? '      fallbackSrc="/samples/landscapes/preset-cover/glacial-mountain-peaks.avif"\n      renderError={({ retry }) => <RetryOverlay onClick={retry} />}\n'
+    : '';
+  const variantCount = image.variants?.length ?? 0;
 
   const placeholderLines = [
     useLqip ? `      blurDataUrl={photo.blurDataUrl} // ${lqipBytes} B WebP LQIP\n` : '',
     useHash ? `      blurHash="${hash}"\n` : '',
-    !useLqip && !useHash ? '      // no LQIP / BlurHash → falls back to the 4-edge color\n' : '',
+    !useLqip && !useHash
+      ? `      // color-only mode (${opts.colorPlaceholder === 'flat' ? 'flat wrapper bg, 0 extra DOM nodes' : 'SVG gradient layer'})\n`
+      : '',
   ].join('');
 
   const animated = assemble(
@@ -92,19 +108,35 @@ export function buildCodeScenarios(image: UploadedImageData, opts: ScenarioOptio
       id: 'animated-image',
       label: 'AnimatedImage',
       filename: 'Hero.tsx',
-      summary: 'Blur-up display with zero layout shift',
+      summary: 'Imagine-Global settle reveal with zero layout shift',
       steps: [
-        { title: 'Ambient color', reflects: `The frame paints instantly in the 4-edge color ${image.blurColor} — no empty box, no layout shift.` },
-        { title: 'Placeholder', reflects: 'A tiny blurred preview appears: WebP LQIP first, BlurHash as fallback.' },
-        { title: 'Shimmer', reflects: 'A soft shimmer signals the full image is still loading.' },
-        { title: 'Crossfade', reflects: `The sharp ${image.format.toUpperCase()} (${image.width}×${image.height}) decodes off-thread, then crossfades in over ${opts.duration}ms.` },
+        {
+          title: 'Ambient color',
+          reflects: `The wrapper paints instantly in ${image.blurColor} (${opts.colorPlaceholder === 'flat' ? 'flat fill, accepts CSS var()' : 'SVG gradient'}) — zero layout shift.`,
+        },
+        {
+          title: 'Placeholder',
+          reflects: 'A 20px-blurred scale(1.1) preview mounts: WebP LQIP first, BlurHash fallback, or flat color.',
+        },
+        {
+          title: 'Priority & Shimmer',
+          reflects: opts.priority
+            ? 'priority sets loading="eager" + fetchPriority="high" (or forwards priority to Next.js Image).'
+            : 'A soft 2s shimmer sweeps across while the full-res asset downloads.',
+        },
+        {
+          title: 'Settle reveal',
+          reflects: opts.simulateError
+            ? 'When loading fails, the blur placeholder stays visible with data-state="error" and renderError({ retry }).'
+            : `The ${image.format.toUpperCase()} (${image.width}×${image.height}${variantCount ? ` + ${variantCount} srcSet variants` : ''}) decodes off-thread, then settles scale(${opts.revealScale}→1) over ${opts.duration}ms.`,
+        },
       ],
     },
     [
-      `import { AnimatedImage } from '${PKG.name}/react';\n\nexport function Hero({ photo }) {\n  return (\n    <AnimatedImage\n      src={photo.url}\n      alt="${alt}"\n      blurColor="${image.blurColor}"\n`,
+      `import { AnimatedImage } from '${PKG.name}/react';\n\nexport function Hero({ photo }) {\n  return (\n    <AnimatedImage\n      image={photo}\n      alt="${alt}"\n      blurColor="${image.blurColor}"\n${colorPhLine}`,
       placeholderLines,
-      `      showShimmer={${opts.showShimmer}}\n`,
-      `      animationDuration={${opts.duration}}\n${fitLine}      fill\n    />\n  );\n}`,
+      `${priorityLine}      showShimmer={${opts.showShimmer}}\n`,
+      `      animationDuration={${opts.duration}}\n${scaleLine}${fitLine}${errorLines}      fill\n    />\n  );\n}`,
     ],
   );
 
@@ -113,19 +145,19 @@ export function buildCodeScenarios(image: UploadedImageData, opts: ScenarioOptio
       id: 'upload-route',
       label: 'Upload route',
       filename: 'app/api/upload/route.ts',
-      summary: 'Sharp optimization on the server',
+      summary: 'Hardened Sharp pipeline + responsive variants',
       steps: [
-        { title: 'Storage', reflects: 'Pick where files live — local disk here; S3, R2 or Supabase use the same contract.' },
-        { title: 'Uploader', reflects: `Each upload runs through Sharp with the "${opts.preset}" preset limits.` },
-        { title: 'Optimize', reflects: `${kb(image.originalSize ?? image.size)} in → ${kb(image.size)} ${image.format.toUpperCase()} out, plus LQIP, BlurHash & color.` },
-        { title: 'Response', reflects: 'The client receives one JSON payload, ready to store in your database.' },
+        { title: 'Storage', reflects: 'Pick where files live — LocalFS, S3, R2, or Supabase share the same adapter contract.' },
+        { title: 'Presets & Variants', reflects: `Runs Sharp with "${opts.preset}" limits and encodes responsive variantWidths in parallel.` },
+        { title: 'Sniff & Optimize', reflects: `Magic-byte format sniff → ${kb(image.originalSize ?? image.size)} in → ${kb(image.size)} ${image.format.toUpperCase()} + single-decode LQIP/BlurHash.` },
+        { title: 'Secure Handler', reflects: 'Context-aware authorize({ action, request }) + explicit allowClientOverrides protect your bucket.' },
       ],
     },
     [
-      `import { createImageUploader, createUploadHttpHandler } from '${PKG.name}/server';\nimport { createLocalFsStorageAdapter } from '${PKG.name}/storage';\n\nconst storage = createLocalFsStorageAdapter({\n  rootDir: './public/uploads',\n  baseUrl: '/uploads',\n});\n`,
-      `\nconst uploader = createImageUploader({\n  storage,\n  defaultBucket: 'media',\n});\n`,
-      `\n// POST: validate → resize → AVIF/WebP size-guard → LQIP + BlurHash + color\n`,
-      `export const { POST, DELETE } = createUploadHttpHandler({ uploader });`,
+      `import { defineUploadPresets, STANDARD_PRESETS } from '${PKG.name}';\nimport { createImageUploader, createUploadHttpHandler } from '${PKG.name}/server';\nimport { createLocalFsStorageAdapter } from '${PKG.name}/storage';\n\nconst storage = createLocalFsStorageAdapter({\n  rootDir: './public/uploads',\n  baseUrl: '/uploads',\n});\n`,
+      `\nconst uploader = createImageUploader({\n  storage,\n  defaultBucket: 'media',\n  presets: defineUploadPresets({\n    ...STANDARD_PRESETS,\n    hero: { ...STANDARD_PRESETS.hero, variantWidths: [640, 1024, 1920] },\n  }),\n});\n`,
+      `\n// Magic-byte sniff → EXIF rotate → AVIF/WebP size-guard → LQIP + BlurHash + srcSet variants\n`,
+      `export const { POST, DELETE } = createUploadHttpHandler({\n  uploader,\n  authorize: ({ action, request }) => Boolean(request.headers.get('cookie')),\n  allowClientOverrides: { folder: true, quality: true, format: true, dimensions: true },\n});`,
     ],
   );
 
@@ -134,19 +166,19 @@ export function buildCodeScenarios(image: UploadedImageData, opts: ScenarioOptio
       id: 'upload-ui',
       label: 'SingleImageUpload',
       filename: 'CoverField.tsx',
-      summary: 'Drop-in upload field for React',
+      summary: 'Drop-in upload field with paste, cancel & forms',
       steps: [
-        { title: 'Provider', reflects: 'One provider sets the endpoint, language and theme for every field.' },
-        { title: 'Field', reflects: `A fully working upload field renders with the "${opts.preset}" preset — try replacing or inspecting it.` },
-        { title: 'onChange', reflects: 'Uploads and blur/alt-text edits emit the updated image payload immediately.' },
-        { title: 'Display', reflects: 'Pass the result straight to <AnimatedImage /> for an instant blur-up.' },
+        { title: 'Provider', reflects: 'One shared provider configures the endpoint, locale (EN/AR RTL) and theme.' },
+        { title: 'Paste & Form', reflects: `Renders with "${opts.preset}", clipboard paste (Ctrl+V), mobile camera capture, and hidden form input.` },
+        { title: 'Cancel & Retry', reflects: 'Per-upload AbortController supports instant cancel/retry and emits the full image + variants payload.' },
+        { title: 'Display', reflects: 'Pass the uploaded object directly to <AnimatedImage image={photo} priority /> for auto srcSet & settle reveal.' },
       ],
     },
     [
       `import { ImageUploadProvider, SingleImageUpload, AnimatedImage } from '${PKG.name}/react';\nimport '${PKG.name}/styles.css';\n\nexport function CoverField() {\n  const [photo, setPhoto] = useState(initialPhoto);\n  return (\n    <ImageUploadProvider endpoint="/api/upload" locale="en">\n`,
-      `      <SingleImageUpload\n        preset="${opts.preset}"\n        value={photo}\n`,
-      `        onChange={setPhoto} // { url, blurDataUrl, blurHash, blurColor, … }\n      />\n`,
-      `      {photo && <AnimatedImage image={photo} showShimmer />}\n    </ImageUploadProvider>\n  );\n}`,
+      `      <SingleImageUpload\n        name="coverImage"\n        preset="${opts.preset}"\n        enablePaste\n        capture="environment"\n        value={photo}\n`,
+      `        onChange={setPhoto} // { url, variants, srcSet, blurDataUrl, blurColor, … }\n      />\n`,
+      `      {photo && <AnimatedImage image={photo} priority showShimmer />}\n    </ImageUploadProvider>\n  );\n}`,
     ],
   );
 

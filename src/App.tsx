@@ -33,10 +33,14 @@ export function App() {
   const [scenarioId, setScenarioId] = useState<ScenarioId>('animated-image');
   const [restartKey, setRestartKey] = useState(0);
   const [settings, setSettings] = useState<PlaygroundSettings>({
-    duration: 700,
+    duration: 600,
     showShimmer: true,
     placeholderMode: 'auto',
     objectFit: 'cover',
+    revealScale: 1.02,
+    colorPlaceholder: 'flat',
+    priority: true,
+    simulateError: false,
     preset: 'hero',
   });
 

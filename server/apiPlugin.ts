@@ -2,7 +2,12 @@ import fs from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { StandardPresetName, UploadedImageData } from 'img-upload-kit';
+import {
+  defineUploadPresets,
+  STANDARD_PRESETS,
+  type StandardPresetName,
+  type UploadedImageData,
+} from 'img-upload-kit';
 import {
   createImageUploader,
   createUploadHttpHandler,
@@ -10,6 +15,8 @@ import {
 import {
   createStorageAdapter,
   type StorageFileEntry,
+  type StoragePaginatedListResult,
+  toPaginatedListResult,
 } from 'img-upload-kit/storage';
 import type { Connect, Plugin } from 'vite';
 
@@ -92,7 +99,7 @@ export function imageUploadKitServerPlugin(): Plugin {
     getPublicUrl(bucket, filePath) {
       return `/uploads/${bucket}/${filePath.replace(/^\/+/, '')}`;
     },
-    async list(bucket, folder): Promise<StorageFileEntry[]> {
+    async list(bucket, folder): Promise<StoragePaginatedListResult> {
       const prefix = folder ? `${bucket}/${folder.replace(/^\/+|\/+$/g, '')}/` : `${bucket}/`;
       const items: StorageFileEntry[] = [];
       for (const [k, v] of store.entries()) {
@@ -105,7 +112,7 @@ export function imageUploadKitServerPlugin(): Plugin {
           });
         }
       }
-      return items;
+      return toPaginatedListResult(items);
     },
     async deleteByUrl(url) {
       const cleanUrl = url.split(/[?#]/)[0];
@@ -116,16 +123,33 @@ export function imageUploadKitServerPlugin(): Plugin {
     },
   });
 
+  const studioPresets = defineUploadPresets({
+    ...STANDARD_PRESETS,
+    hero: { ...STANDARD_PRESETS.hero, variantWidths: [640, 1024, 1920] },
+    cover: { ...STANDARD_PRESETS.cover, variantWidths: [640, 1024, 1600] },
+    card: { ...STANDARD_PRESETS.card, variantWidths: [480, 800] },
+  });
+
   const uploader = createImageUploader({
     storage,
     defaultBucket: 'studio',
+    presets: studioPresets,
     includeBlurHash: true,
     concurrency: 2,
   });
 
   const httpHandler = createUploadHttpHandler({
     uploader,
+    authorize: ({ action, request }) =>
+      (action === 'upload' || action === 'delete') && Boolean(request.url),
     allowClientBucketOverride: true,
+    allowClientOverrides: {
+      filename: true,
+      folder: true,
+      dimensions: true,
+      format: true,
+      quality: true,
+    },
   });
 
   async function ensureSamples(): Promise<UploadedImageData[]> {

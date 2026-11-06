@@ -1,4 +1,5 @@
 import {
+  type ImageVariant,
   STANDARD_PRESETS,
   type StandardPresetName,
   type UploadedImageData,
@@ -118,6 +119,7 @@ async function clientFallbackOptimize(
 
     const finalUrl = URL.createObjectURL(finalBlob);
     activeBlobUrls.add(finalUrl);
+    const { variants, srcSet } = buildClientVariants(finalUrl, width, height, finalBlob.size);
 
     return {
       url: finalUrl,
@@ -132,11 +134,31 @@ async function clientFallbackOptimize(
       size: finalBlob.size,
       originalSize: file.size,
       contentHash: `local-${Date.now().toString(36)}`,
+      variants,
+      srcSet,
       uploadedAt: new Date().toISOString(),
     };
   } finally {
     URL.revokeObjectURL(bitmapUrl);
   }
+}
+
+function buildClientVariants(
+  url: string,
+  width: number,
+  height: number,
+  size: number,
+): { variants?: ImageVariant[]; srcSet?: string } {
+  const targetWidths = [640, 1024, 1920].filter((w) => w < width);
+  if (targetWidths.length === 0) return {};
+  const variants: ImageVariant[] = targetWidths.map((w) => ({
+    width: w,
+    height: Math.max(1, Math.round((height / width) * w)),
+    url,
+    size: Math.max(4096, Math.round(size * Math.pow(w / width, 1.45))),
+  }));
+  const srcSet = [...variants.map((v) => `${v.url} ${v.width}w`), `${url} ${width}w`].join(', ');
+  return { variants, srcSet };
 }
 
 /**
@@ -159,12 +181,23 @@ export const demoUploader: CustomUploaderFn = async (file, options) => {
   if (options.outputFormat) formData.append('outputFormat', options.outputFormat);
   if (options.folder) formData.append('folder', options.folder);
   if (options.bucket) formData.append('bucket', options.bucket);
+  if (options.customFilename) formData.append('customFilename', options.customFilename);
+  if (options.maxDimensions?.width) formData.append('maxWidth', String(options.maxDimensions.width));
+  if (options.maxDimensions?.height) formData.append('maxHeight', String(options.maxDimensions.height));
 
   const xhrResult = await new Promise<
-    { ok: true; data: ServerUploadResponse } | { ok: false; status: number; message: string }
+    { ok: true; data: ServerUploadResponse } | { ok: false; status: number; message: string; aborted?: boolean }
   >((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/upload');
+
+    if (options.signal) {
+      if (options.signal.aborted) {
+        resolve({ ok: false, status: 0, message: 'Upload cancelled', aborted: true });
+        return;
+      }
+      options.signal.addEventListener('abort', () => xhr.abort(), { once: true });
+    }
 
     xhr.upload.onprogress = (evt) => {
       if (evt.lengthComputable) {
@@ -193,9 +226,14 @@ export const demoUploader: CustomUploaderFn = async (file, options) => {
       }
     };
 
+    xhr.onabort = () => resolve({ ok: false, status: 0, message: 'Upload cancelled', aborted: true });
     xhr.onerror = () => resolve({ ok: false, status: 0, message: 'Network error' });
     xhr.send(formData);
   });
+
+  if (!xhrResult.ok && xhrResult.aborted) {
+    throw new DOMException('Upload cancelled', 'AbortError');
+  }
 
   if (xhrResult.ok) {
     options.onUploadProgress?.(100);
@@ -203,11 +241,17 @@ export const demoUploader: CustomUploaderFn = async (file, options) => {
     const finalUrl = inlineBase64
       ? base64ToBlobUrl(inlineBase64, mimeType || `image/${cleanData.format}`)
       : cleanData.url;
+    const synth =
+      inlineBase64 || !cleanData.variants?.length
+        ? buildClientVariants(finalUrl, cleanData.width, cleanData.height, cleanData.size)
+        : { variants: cleanData.variants, srcSet: cleanData.srcSet };
     uploadedLabels.set(finalUrl, resolvedAlt);
     return {
       ...cleanData,
       url: finalUrl,
       altText: cleanData.altText?.trim() || resolvedAlt,
+      variants: synth.variants,
+      srcSet: synth.srcSet,
     };
   }
 

@@ -34,10 +34,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const storage = createStorageAdapter({
     async upload({ bucket, path: filePath, data, contentType }) {
       const cleanPath = filePath.replace(/^\/+/, '');
-      latestCapture = {
-        buffer: Buffer.from(data),
-        contentType,
-      };
+      if (!latestCapture) {
+        latestCapture = {
+          buffer: Buffer.from(data),
+          contentType,
+        };
+      }
       return {
         bucket,
         path: cleanPath,
@@ -64,7 +66,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   const httpHandler = createUploadHttpHandler({
     uploader,
+    authorize: ({ action, request }) =>
+      (action === 'upload' || action === 'delete') && Boolean(request.url),
     allowClientBucketOverride: true,
+    allowClientOverrides: {
+      filename: true,
+      folder: true,
+      dimensions: true,
+      format: true,
+      quality: true,
+    },
   });
 
   try {

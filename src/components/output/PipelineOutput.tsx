@@ -31,6 +31,7 @@ export function PipelineOutput({ image, completed, preset }: PipelineOutputProps
     originalSize: original,
     blurColor: image.blurColor,
     blurHash: image.blurHash ?? null,
+    variants: image.variants?.map((v) => `${v.width}w`) ?? [],
     blurDataUrl: image.blurDataUrl ? `${image.blurDataUrl.slice(0, 26)}…` : '',
   };
 

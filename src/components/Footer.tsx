@@ -3,9 +3,15 @@ import { BRAND, PKG } from '../brand';
 import { BrandLogo } from './BrandLogo';
 
 const STEPS = [
-  { title: 'Install', code: `npm i ${PKG.name}` },
-  { title: 'Add the route', code: `export const { POST, DELETE } =\n  createUploadHttpHandler({ uploader });` },
-  { title: 'Drop in the UI', code: `<ImageUploadProvider endpoint="/api/upload">\n  <SingleImageUpload preset="cover" onChange={save} />\n</ImageUploadProvider>` },
+  { title: 'Install', code: `npm i ${PKG.name} sharp` },
+  {
+    title: 'Add the route',
+    code: `export const { POST, DELETE } = createUploadHttpHandler({\n  uploader,\n  authorize: ({ request }) => Boolean(request.headers.get('cookie')),\n});`,
+  },
+  {
+    title: 'Drop in the UI',
+    code: `<ImageUploadProvider endpoint="/api/upload">\n  <SingleImageUpload name="cover" preset="cover" onChange={save} />\n</ImageUploadProvider>`,
+  },
 ];
 
 export function GetStarted() {
