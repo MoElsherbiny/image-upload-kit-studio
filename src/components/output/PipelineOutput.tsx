@@ -1,19 +1,19 @@
-import { STANDARD_PRESETS, type StandardPresetName, type UploadedImageData } from 'img-upload-kit';
+import type { UploadedImageData } from 'img-upload-kit';
 import { FileJson, HardDrive, Settings2, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
-import { savingsPercent } from '../../data/codeScenarios';
+import { savingsPercent, STUDIO_PRESETS, type StudioPresetName } from '../../data/codeScenarios';
 
 interface PipelineOutputProps {
   image: UploadedImageData;
   completed: number;
-  preset: StandardPresetName;
+  preset: StudioPresetName;
 }
 
 const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
 
 /** Live output for the upload route example — the server pipeline, step by step. */
 export function PipelineOutput({ image, completed, preset }: PipelineOutputProps) {
-  const config = STANDARD_PRESETS[preset];
+  const config = STUDIO_PRESETS[preset];
   const original = image.originalSize ?? image.size;
   const ratio = Math.max(0.04, Math.min(1, image.size / Math.max(1, original)));
   const savings = savingsPercent(image);

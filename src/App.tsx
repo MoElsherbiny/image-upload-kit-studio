@@ -10,7 +10,14 @@ import { Navbar } from './components/Navbar';
 import { PlaceholderLab } from './components/PlaceholderLab';
 import { SourcePicker } from './components/SourcePicker';
 import { StepTimeline } from './components/StepTimeline';
-import { buildCodeScenarios, type ImageFitMode, type ScenarioId, type Step } from './data/codeScenarios';
+import {
+  buildCodeScenarios,
+  type DemoFramework,
+  type ImageFitMode,
+  type ScenarioId,
+  type Step,
+  type StudioPresetName,
+} from './data/codeScenarios';
 import {
   DEFAULT_LANDSCAPE_ENTRY,
   LANDSCAPE_SAMPLES,
@@ -19,7 +26,7 @@ import {
 import { usePointerGlow } from './hooks/usePointerGlow';
 import { demoUploader, getUploadedFileLabel, humanizeFilename } from './lib/demoUploader';
 
-function recommendedFitFor(data: UploadedImageData, preset?: StandardPresetName): ImageFitMode {
+function recommendedFitFor(data: UploadedImageData, preset?: StudioPresetName): ImageFitMode {
   if (preset === 'logo') return 'contain';
   if (data.width > 0 && data.height > data.width * 0.95) return 'contain';
   return 'cover';
@@ -41,6 +48,8 @@ export function App() {
     priority: true,
     simulateError: false,
     preset: 'hero',
+    framework: 'react',
+    aspectRatio: '16:10',
   });
 
   usePointerGlow();
@@ -71,6 +80,11 @@ export function App() {
     setRestartKey((k) => k + 1);
   }, []);
 
+  const handleChangeFramework = useCallback((framework: DemoFramework) => {
+    setSettings((s) => ({ ...s, framework }));
+    setJumpRequest({ step: 4, nonce: Date.now() });
+  }, []);
+
   const handleJump = useCallback((step: Step) => setJumpRequest({ step, nonce: Date.now() }), []);
 
   // Selecting an existing landscape or uploaded photo reflects immediately at Step 4 (no blank wipe!).
@@ -91,7 +105,7 @@ export function App() {
 
   // Handles both fresh uploads AND metadata updates (altText / blurColor) from <SingleImageUpload />.
   const handleUploaded = useCallback(
-    (next: UploadedImageData, meta?: { label?: string; preset?: StandardPresetName }) => {
+    (next: UploadedImageData, meta?: { label?: string; preset?: StudioPresetName }) => {
       const usedPreset = meta?.preset ?? settings.preset;
       setEntries((prev) => {
         const existingIdx = prev.findIndex((e) => e.data.url === next.url);
@@ -120,7 +134,7 @@ export function App() {
         const newEntry: StudioImageEntry = {
           id: next.url,
           label: derivedLabel,
-          preset: usedPreset,
+          preset: usedPreset as StandardPresetName,
           isUserUpload: true,
           data: enrichedData,
         };
@@ -164,7 +178,7 @@ export function App() {
           <SectionHeading
             eyebrow="Code studio"
             title="Watch the code write itself"
-            text="Each step lights up the lines that matter and shows what they change on the right. Click any step to jump to it — or upload your own photo to test it live."
+            text="Switch between React, Angular, and React Native — each step lights up the lines that matter and shows what they change on the right."
           />
           <div className="rounded-2xl border border-line bg-surface/60 p-4 backdrop-blur">
             <SourcePicker
@@ -182,6 +196,8 @@ export function App() {
               scenarios={scenarios}
               scenario={scenario}
               onSelectScenario={handleSelectScenario}
+              framework={settings.framework}
+              onChangeFramework={handleChangeFramework}
               restartKey={restartKey}
               jumpRequest={jumpRequest}
               onProgress={handleProgress}
@@ -214,7 +230,7 @@ export function App() {
           <SectionHeading
             eyebrow="Get started"
             title="Three steps to ship it"
-            text="Works with Next.js, Remix, Hono, SvelteKit — anything that speaks the Web Request API."
+            text="Works with React, Next.js, Angular, React Native / Expo, Remix, Hono, and SvelteKit."
           />
           <GetStarted />
         </section>

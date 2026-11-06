@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import type { StandardPresetName, UploadedImageData } from 'img-upload-kit';
+import type { UploadedImageData } from 'img-upload-kit';
 import { AlertTriangle, Eye, RefreshCw, SlidersHorizontal, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type {
   CodeScenario,
   ColorPlaceholderMode,
+  DemoFramework,
   ImageFitMode,
   PlaceholderMode,
   RevealScaleMode,
+  StudioAspectRatio,
+  StudioPresetName,
 } from '../data/codeScenarios';
 import { ImageStageOutput, type NetworkDelay } from './output/ImageStageOutput';
 import { PipelineOutput } from './output/PipelineOutput';
@@ -22,7 +25,9 @@ export interface PlaygroundSettings {
   colorPlaceholder: ColorPlaceholderMode;
   priority: boolean;
   simulateError: boolean;
-  preset: StandardPresetName;
+  preset: StudioPresetName;
+  framework: DemoFramework;
+  aspectRatio: StudioAspectRatio;
 }
 
 interface LiveOutputStageProps {
@@ -32,7 +37,7 @@ interface LiveOutputStageProps {
   settings: PlaygroundSettings;
   onChangeSettings: (patch: Partial<PlaygroundSettings>) => void;
   onEnsureStep4?: () => void;
-  onUploaded: (image: UploadedImageData, meta?: { label?: string; preset?: StandardPresetName }) => void;
+  onUploaded: (image: UploadedImageData, meta?: { label?: string; preset?: StudioPresetName }) => void;
 }
 
 const DELAYS: Array<{ value: NetworkDelay; label: string }> = [
@@ -64,7 +69,16 @@ const COLOR_PH_MODES: Array<{ value: ColorPlaceholderMode; label: string }> = [
   { value: 'gradient', label: 'SVG' },
 ];
 
-const PRESETS: StandardPresetName[] = ['hero', 'cover', 'card', 'avatar', 'thumbnail', 'logo', 'original'];
+const ASPECT_RATIOS: Array<{ value: StudioAspectRatio; label: string }> = [
+  { value: '16:10', label: '16:10' },
+  { value: '1:1', label: '1:1' },
+  { value: '4:5', label: '4:5' },
+  { value: '9:16', label: '9:16' },
+];
+
+const PRESETS: StudioPresetName[] = [
+  'hero', 'cover', 'card', 'square', 'portrait', 'story', 'avatar', 'thumbnail', 'logo', 'original',
+];
 
 export function LiveOutputStage({
   scenario,
@@ -79,7 +93,6 @@ export function LiveOutputStage({
   const [replayKey, setReplayKey] = useState(0);
   const prevUrlRef = useRef(image.url);
 
-  // Ensure a newly uploaded or selected image never stays frozen on 'hold'.
   useEffect(() => {
     if (prevUrlRef.current !== image.url) {
       prevUrlRef.current = image.url;
@@ -131,6 +144,7 @@ export function LiveOutputStage({
             colorPlaceholder={settings.colorPlaceholder}
             priority={settings.priority}
             simulateError={settings.simulateError}
+            aspectRatio={settings.aspectRatio}
             onClearErrorSimulation={() => onChangeSettings({ simulateError: false })}
             networkDelay={activeDelay}
             replayKey={replayKey}
@@ -150,7 +164,7 @@ export function LiveOutputStage({
         <div className="mt-4 min-h-[3.5rem] rounded-xl bg-surface-2 px-4 py-3" aria-live="polite">
           <AnimatePresence mode="wait">
             <motion.p
-              key={`${scenario.id}-${completed}-${image.url}-${settings.simulateError}`}
+              key={`${scenario.id}-${completed}-${image.url}-${settings.simulateError}-${settings.aspectRatio}`}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
@@ -176,57 +190,13 @@ export function LiveOutputStage({
         </p>
         {isImage ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Segmented
-              label="Placeholder"
-              value={settings.placeholderMode}
-              options={MODES}
-              onChange={(v) => {
-                onChangeSettings({ placeholderMode: v, simulateError: false });
-                if (activeDelay === 0) setActiveDelay(800);
-                setReplayKey((k) => k + 1);
-              }}
-            />
-            <Segmented
-              label="Network"
-              value={activeDelay}
-              options={DELAYS}
-              onChange={(v) => {
-                onEnsureStep4?.();
-                if (settings.simulateError) onChangeSettings({ simulateError: false });
-                setActiveDelay(v);
-                setReplayKey((k) => k + 1);
-              }}
-            />
-            <Segmented
-              label="Reveal"
-              value={settings.revealScale}
-              options={SCALES}
-              onChange={(v) => {
-                onChangeSettings({ revealScale: v, simulateError: false });
-                if (activeDelay === 'hold') setActiveDelay(800);
-                setReplayKey((k) => k + 1);
-              }}
-            />
-            <Segmented
-              label="Color fill"
-              value={settings.colorPlaceholder}
-              options={COLOR_PH_MODES}
-              onChange={(v) => {
-                onChangeSettings({ colorPlaceholder: v, placeholderMode: 'color', simulateError: false });
-                if (activeDelay === 0) setActiveDelay(800);
-                setReplayKey((k) => k + 1);
-              }}
-            />
-            <Segmented
-              label="Fit"
-              value={settings.objectFit}
-              options={FITS}
-              onChange={(v) => {
-                onChangeSettings({ objectFit: v });
-                if (activeDelay === 'hold') setActiveDelay(800);
-              }}
-            />
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+            <Segmented label="Placeholder" value={settings.placeholderMode} options={MODES} onChange={(v) => { onChangeSettings({ placeholderMode: v, simulateError: false }); if (activeDelay === 0) setActiveDelay(800); setReplayKey((k) => k + 1); }} />
+            <Segmented label="Network" value={activeDelay} options={DELAYS} onChange={(v) => { onEnsureStep4?.(); if (settings.simulateError) onChangeSettings({ simulateError: false }); setActiveDelay(v); setReplayKey((k) => k + 1); }} />
+            <Segmented label="Aspect" value={settings.aspectRatio} options={ASPECT_RATIOS} onChange={(v) => { onChangeSettings({ aspectRatio: v, simulateError: false }); if (activeDelay === 'hold') setActiveDelay(800); }} />
+            <Segmented label="Fit" value={settings.objectFit} options={FITS} onChange={(v) => { onChangeSettings({ objectFit: v }); if (activeDelay === 'hold') setActiveDelay(800); }} />
+            <Segmented label="Reveal" value={settings.revealScale} options={SCALES} onChange={(v) => { onChangeSettings({ revealScale: v, simulateError: false }); if (activeDelay === 'hold') setActiveDelay(800); setReplayKey((k) => k + 1); }} />
+            <Segmented label="Color fill" value={settings.colorPlaceholder} options={COLOR_PH_MODES} onChange={(v) => { onChangeSettings({ colorPlaceholder: v, placeholderMode: 'color', simulateError: false }); if (activeDelay === 0) setActiveDelay(800); setReplayKey((k) => k + 1); }} />
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted sm:col-span-2">
               <label className="flex cursor-pointer items-center gap-1.5">
                 <input
                   type="checkbox"

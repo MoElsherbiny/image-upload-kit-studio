@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { STANDARD_PRESETS, type StandardPresetName, type UploadedImageData } from 'img-upload-kit';
+import type { StandardPresetName, UploadedImageData } from 'img-upload-kit';
 import { useSingleUpload } from 'img-upload-kit/headless';
 import confetti from 'canvas-confetti';
 import { Check, ImagePlus, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { savingsPercent } from '../data/codeScenarios';
+import { savingsPercent, STUDIO_PRESETS, type StudioPresetName } from '../data/codeScenarios';
 import type { StudioImageEntry } from '../data/landscapeSamples';
 import { humanizeFilename } from '../lib/demoUploader';
 
@@ -12,12 +12,23 @@ interface SourcePickerProps {
   entries: StudioImageEntry[];
   activeId: string;
   onSelect: (id: string) => void;
-  onUploaded: (image: UploadedImageData, meta?: { label?: string; preset?: StandardPresetName }) => void;
-  preset: StandardPresetName;
-  onChangePreset: (preset: StandardPresetName) => void;
+  onUploaded: (image: UploadedImageData, meta?: { label?: string; preset?: StudioPresetName }) => void;
+  preset: StudioPresetName;
+  onChangePreset: (preset: StudioPresetName) => void;
 }
 
-const PRESETS: StandardPresetName[] = ['hero', 'cover', 'card', 'avatar', 'thumbnail', 'logo', 'original'];
+const PRESETS: StudioPresetName[] = [
+  'hero',
+  'cover',
+  'card',
+  'square',
+  'portrait',
+  'story',
+  'avatar',
+  'thumbnail',
+  'logo',
+  'original',
+];
 
 /**
  * Lets the user choose which image drives the whole studio: one of the 4 real
@@ -51,7 +62,7 @@ export function SourcePicker({
                 role="radio"
                 aria-checked={preset === p}
                 onClick={() => onChangePreset(p)}
-                title={`${p}: max ${STANDARD_PRESETS[p]?.maxDimensions?.width ?? ''}×${STANDARD_PRESETS[p]?.maxDimensions?.height ?? ''}px`}
+                title={`${p}: max ${STUDIO_PRESETS[p]?.maxDimensions?.width ?? ''}×${STUDIO_PRESETS[p]?.maxDimensions?.height ?? ''}px`}
                 className={`rounded-md px-2 py-0.5 font-mono text-[11px] transition ${
                   preset === p ? 'bg-surface text-accent shadow-sm ring-1 ring-line-strong' : 'text-muted hover:text-fg'
                 }`}
@@ -118,15 +129,15 @@ function UploadTile({
   preset,
   onUploaded,
 }: {
-  preset: StandardPresetName;
-  onUploaded: (img: UploadedImageData, meta?: { label?: string; preset?: StandardPresetName }) => void;
+  preset: StudioPresetName;
+  onUploaded: (img: UploadedImageData, meta?: { label?: string; preset?: StudioPresetName }) => void;
 }) {
   const lastFileNameRef = useRef<string>('');
   const lastToastErrorRef = useRef<string>('');
-  const presetConfig = STANDARD_PRESETS[preset];
+  const presetConfig = STUDIO_PRESETS[preset];
 
   const upload = useSingleUpload({
-    preset,
+    preset: preset as StandardPresetName,
     requireAltText: false,
     onChange: (data) => {
       if (!data) return;

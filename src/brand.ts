@@ -10,7 +10,7 @@ export const BRAND = {
 /** The published npm package (import paths match the live unscoped npm package). */
 export const PKG = {
   name: 'img-upload-kit',
-  version: '2.0.0',
+  version: '2.1.0',
   npm: 'https://www.npmjs.com/package/img-upload-kit',
   repo: 'https://github.com/MoElsherbiny/image-upload-kit',
   docs: 'https://github.com/MoElsherbiny/image-upload-kit#readme',

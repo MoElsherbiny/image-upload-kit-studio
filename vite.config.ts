@@ -21,12 +21,24 @@ export default defineConfig({
             replacement: path.resolve(kitRoot, 'dist/styles.css'),
           },
           {
+            find: /^img-upload-kit\/client$/,
+            replacement: path.resolve(kitRoot, 'src/client/index.ts'),
+          },
+          {
             find: /^img-upload-kit\/react$/,
             replacement: path.resolve(kitRoot, 'src/react/index.ts'),
           },
           {
             find: /^img-upload-kit\/headless$/,
             replacement: path.resolve(kitRoot, 'src/react/headless/index.ts'),
+          },
+          {
+            find: /^img-upload-kit\/angular$/,
+            replacement: path.resolve(kitRoot, 'src/angular/index.ts'),
+          },
+          {
+            find: /^img-upload-kit\/react-native$/,
+            replacement: path.resolve(kitRoot, 'src/react-native/index.ts'),
           },
           {
             find: /^img-upload-kit\/blur$/,
@@ -40,7 +52,15 @@ export default defineConfig({
       : [],
   },
   optimizeDeps: {
-    exclude: ['img-upload-kit', 'img-upload-kit/react', 'img-upload-kit/headless', 'img-upload-kit/blur'],
+    exclude: [
+      'img-upload-kit',
+      'img-upload-kit/client',
+      'img-upload-kit/react',
+      'img-upload-kit/headless',
+      'img-upload-kit/angular',
+      'img-upload-kit/react-native',
+      'img-upload-kit/blur',
+    ],
   },
   server: {
     port: 5173,

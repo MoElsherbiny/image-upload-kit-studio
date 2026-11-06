@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { HighlighterCore } from 'shiki/core';
 import { Check, Copy, Pause, Play, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import type { CodeScenario, ScenarioId, Step } from '../data/codeScenarios';
+import type { CodeScenario, DemoFramework, ScenarioId, Step } from '../data/codeScenarios';
 import { type TypingSpeed, useTypewriter } from '../hooks/useTypewriter';
 import { getHighlighter, tokenizeCode } from '../lib/highlighter';
 import { CodeView } from './CodeView';
@@ -16,11 +16,19 @@ interface AnimatedCodeEditorProps {
   scenarios: CodeScenario[];
   scenario: CodeScenario;
   onSelectScenario: (id: ScenarioId) => void;
+  framework: DemoFramework;
+  onChangeFramework: (framework: DemoFramework) => void;
   restartKey: number;
   jumpRequest: JumpRequest | null;
   /** Fired only when the focused step or completed count changes — not per keystroke. */
   onProgress: (step: Step, completed: number) => void;
 }
+
+const FRAMEWORKS: Array<{ value: DemoFramework; label: string }> = [
+  { value: 'react', label: 'React' },
+  { value: 'angular', label: 'Angular' },
+  { value: 'react-native', label: 'React Native' },
+];
 
 const SPEEDS: Array<{ value: TypingSpeed; label: string }> = [
   { value: 1, label: '1×' },
@@ -39,6 +47,8 @@ export const AnimatedCodeEditor = memo(function AnimatedCodeEditor({
   scenarios,
   scenario,
   onSelectScenario,
+  framework,
+  onChangeFramework,
   restartKey,
   jumpRequest,
   onProgress,
@@ -82,28 +92,56 @@ export const AnimatedCodeEditor = memo(function AnimatedCodeEditor({
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0f19] shadow-2xl shadow-black/30"
       aria-label="Animated code editor"
     >
-      <div className="flex items-center gap-3 border-b border-white/10 bg-[#0e1321] ps-4">
-        <div className="flex shrink-0 gap-1.5" aria-hidden>
-          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-          <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#0e1321] ps-4 pe-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex shrink-0 gap-1.5" aria-hidden>
+            <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+            <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+            <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+          </div>
+          <div className="no-scrollbar flex min-w-0 flex-1 overflow-x-auto" role="tablist" aria-label="Examples">
+            {scenarios.map((s) => {
+              const active = s.id === scenario.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => onSelectScenario(s.id)}
+                  className={`relative shrink-0 border-e border-white/5 px-3.5 py-3 font-mono text-xs transition ${
+                    active ? 'bg-[#0b0f19] text-white' : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  {s.filename.split('/').pop()}
+                  {active && <span className="absolute inset-x-0 top-0 h-0.5 bg-sky-400" />}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="no-scrollbar flex min-w-0 flex-1 overflow-x-auto" role="tablist" aria-label="Examples">
-          {scenarios.map((s) => {
-            const active = s.id === scenario.id;
+
+        <div
+          className="my-1.5 flex shrink-0 items-center rounded-lg border border-white/10 bg-white/[0.04] p-0.5"
+          role="radiogroup"
+          aria-label="Client framework"
+        >
+          {FRAMEWORKS.map((fw) => {
+            const active = framework === fw.value;
             return (
               <button
-                key={s.id}
+                key={fw.value}
                 type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => onSelectScenario(s.id)}
-                className={`relative shrink-0 border-e border-white/5 px-4 py-3 font-mono text-xs transition ${
-                  active ? 'bg-[#0b0f19] text-white' : 'text-slate-500 hover:text-slate-300'
+                role="radio"
+                aria-checked={active}
+                onClick={() => onChangeFramework(fw.value)}
+                className={`rounded-md px-2 py-1 font-mono text-[11px] font-medium transition ${
+                  active
+                    ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/40'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {s.filename.split('/').pop()}
-                {active && <span className="absolute inset-x-0 top-0 h-0.5 bg-sky-400" />}
+                {fw.label}
               </button>
             );
           })}
