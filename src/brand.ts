@@ -10,13 +10,14 @@ export const BRAND = {
 /** The published npm package (import paths match the live unscoped npm package). */
 export const PKG = {
   name: 'img-upload-kit',
-  version: '2.2.1',
+  version: '2.2.2',
   npm: 'https://www.npmjs.com/package/img-upload-kit',
   repo: 'https://github.com/MoElsherbiny/image-upload-kit',
   docs: 'https://github.com/MoElsherbiny/image-upload-kit#readme',
 } as const;
 
 export const INSTALL_COMMANDS = {
+  cli: `npx ${PKG.name}@latest init`,
   npm: `npm i ${PKG.name}`,
   pnpm: `pnpm add ${PKG.name}`,
   yarn: `yarn add ${PKG.name}`,
